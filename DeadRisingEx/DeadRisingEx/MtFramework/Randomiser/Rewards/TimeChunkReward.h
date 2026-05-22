@@ -1,6 +1,6 @@
 #pragma once
-#include "DeadRisingEx/MtFramework/Player/Archipelago/Checks/CheckSystem.h"
-#include "../TimeManager.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/CheckSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/TimeManager.h"
 
 class TimeChunkReward
 {

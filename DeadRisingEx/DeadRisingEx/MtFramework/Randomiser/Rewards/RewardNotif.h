@@ -1,7 +1,7 @@
 
 #pragma once
 #include <Windows.h>
-#include "DeadRisingEx/MtFramework/Player/Randomiser/Checks/CheckSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/CheckSystem.h"
 
 void InitializeRewardNotifications();
 void ShutdownRewardNotifications();
