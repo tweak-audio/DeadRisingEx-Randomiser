@@ -11,6 +11,8 @@
 #include "DeadRisingEx/MtFramework/Debug/sSnatcherToolImpl.h"
 #include <WinUser.h>
 
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/RewardNotif.h"
+
 #pragma comment(lib, "d3dcompiler")
 
 const char* ImGuiVertexShaderCode =
@@ -460,6 +462,9 @@ void ImGuiRenderer::BeginFrame()
     // Start a new imgui frame.
     ImGui::NewFrame();
 
+    // Always draw reward notifications
+    UpdateRewardNotifications();
+
     // If the imgui UI is not visible bail out.
     if (this->isVisible == false)
         return;
@@ -482,9 +487,11 @@ void ImGuiRenderer::SystemUpdate()
     // Finish the imgui frame.
     ImGui::Render();
 
+    /*
     // If the UI layer is not visible bail out.
     if (this->isVisible == false)
         return;
+    */
 
     // Get the d3d device context from sRender instance.
     ID3D11DeviceContext *pDeviceContext = *(ID3D11DeviceContext**)(((BYTE*)sRender::Instance()) + 0x85A8);
