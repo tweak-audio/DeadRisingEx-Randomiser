@@ -1,0 +1,39 @@
+TODO:
+- hook time
+    -split into sections and make available as rewards (DONE)
+
+- hook cases
+    - add to checks
+
+- add logic to seed generation (done)
+    - correct survivor and psychopath hex with correct values (done)
+
+- store already completed checks on per seed basis (DONE!)
+
+- transfer over to github
+    - connect to github
+
+- transform into archipelago
+
+TO IMPROVE:
+- if 2 checks give level up at same time only 1 level up applies (fixed)
+- seems like if a survivor is nearby and you photograph a pp sticker you get both checks (possibly fixed?)
+
+
+
+Ideas:
+- hook clothing
+    - add to checks
+- hook items
+    - add to checks
+- refill camera as reward (done)
+-randomise maintanance key? other blue items?
+
+- create custom text popups using the pp gained popup
+
+- Checks for survivors joined
+- Checks for survivors escorted back
+- Checks for killing psychopaths
+
+- add check for save file 
+    - maybe make it only work on 1 save file 
