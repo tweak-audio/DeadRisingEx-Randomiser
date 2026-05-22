@@ -37,7 +37,22 @@
 #include "DeadRisingEx/MtFramework/Object/Model/sSMManagerImpl.h"
 #include "DeadRisingEx/MtFramework/Object/Npc/uNpcMarkerImpl.h"
 #include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
+
+#include "DeadRisingEx/MtFramework/Randomiser/TimeManager.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/CheckSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/PPStickerCheck.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/SurvivorPhotoCheck.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/PsychopathPhotoCheck.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/PhotoProcessHook.h"
+//#include "DeadRisingEx/MtFramework/Randomiser/Checks/PsychopathPhotoHook.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/SetItemRewardSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/LevelUpRewardSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/CameraRefillReward.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/TimeChunkReward.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/RewardNotif.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
+
+
 
 // Version string for update 1 of the game exe.
 const char *g_SupportedGameVersionString = "Master Oct  6 2016 23:23:44";
@@ -176,6 +191,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         MtHeapAllocatorImpl::RegisterTypeInfo();
         ImGuiRenderer::RegisterTypeInfo();
 
+        InitializeRewardNotifications();
+
         if (ModConfig::Instance()->RecursiveGrenade == true)
             uOm08Impl::RegisterTypeInfo();
 
@@ -203,28 +220,70 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         sMainImpl::InstallHooks();
         sSnatcherMainImpl::InstallHooks();
         sSMManagerImpl::InstallHooks();
-        //MtHeapAllocatorImpl::InstallHooks();
         cGametaskTitleImpl::InstallHooks();
         uNpcMarkerImpl::InstallHooks();
         uPhotoImpl::InstallHooks();
         uItemImpl::InstallHooks();
+        
 
         uPlayerImpl::RegisterTypeInfo();
+        uPPStickerImpl::RegisterTypeInfo();
+        SurvivorPhotoCheck::RegisterTypeInfo();
+        PsychopathPhotoCheck::RegisterTypeInfo();
+        
 
-        // Initialize the archive file overlay system.
         if (ArchiveOverlay::Instance()->Initialize() == false)
         {
-            // Failed to initialize the overlay system.
             DbgPrint("Failed to initialize the overlay system!\n");
             TerminateProcess(GetCurrentProcess(), 0xBAD0C0DE);
         }
 
-        // Commit the transaction.
         if (DetourTransactionCommit() != NO_ERROR)
-        {
-            // Failed to hook into the process, terminate.
             TerminateProcess(GetCurrentProcess(), 0xBAD0C0DE);
-        }
+
+        // Register check ranges and initialize BEFORE any hooks can fire
+
+        InitScoopPhotoHook();
+        //InitPsychopathPhotoHook();
+
+        CheckSystem::OnCheckCompleted([](CheckId check, Reward reward)
+        {
+            
+            switch (reward.type)
+            {
+                case RewardType::TimeChunk:
+                    TimeChunkReward::GrantTimeChunk(reward.value);
+                    ShowRewardNotification(RewardType::TimeChunk, nullptr, reward.value);
+                    break;
+                    
+                case RewardType::SetItem:
+                    {
+                        int itemId = SpawnNextRewardSlotNearPlayer();
+                        const char* itemName = itemId >= 0 ? GetItemNameFromId((DWORD)itemId) : "Unknown Item";
+                        ShowRewardNotification(RewardType::SetItem, itemName, 0);
+                        break;
+                    }
+                    
+                case RewardType::LevelUp:
+                    GrantLevels(1);
+                    ShowRewardNotification(RewardType::LevelUp);
+                    break;
+                    
+                case RewardType::BatteryRefill:
+                    CameraRefillReward::SetFilmCount(30);
+                    ShowRewardNotification(RewardType::BatteryRefill);
+                    break;
+                    
+                case RewardType::None:
+                default:
+                    break;
+            }
+        });
+
+        CheckSystem::Initialize(); 
+        TimeManager::Initialize();
+        // Initialize notification hook system (for displaying rewards)
+        InitializeRewardNotifications();
 
         // Dummy function to force non-used symbols to be emitted in the pdb file.
         ForceSymbolsHelper();
@@ -232,7 +291,9 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     }
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
+        break;
     case DLL_PROCESS_DETACH:
+        ShutdownRewardNotifications();
         break;
     }
     return TRUE;
