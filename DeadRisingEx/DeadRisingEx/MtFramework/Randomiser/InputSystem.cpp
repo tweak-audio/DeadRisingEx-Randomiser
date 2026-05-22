@@ -1,13 +1,14 @@
-#include "Checks/CheckSystem.h"
+
 #include "InputSystem.h"
 #include "TimeManager.h"
-#include "../uPlayerImpl.h"
+#include "Checks/CheckSystem.h"
 #include "Rewards/LevelUpRewardSystem.h"
 #include "Rewards/SetItemRewardSystem.h"
 #include "Rewards/CameraRefillReward.h"
 #include "Rewards/TimeChunkReward.h"
 #include "Rewards/RewardNotif.h"
 
+#include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include <Windows.h>
 #include <stdio.h>

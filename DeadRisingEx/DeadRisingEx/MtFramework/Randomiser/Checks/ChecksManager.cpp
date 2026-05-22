@@ -1,10 +1,10 @@
 /*
-Rename to Checks manager 
+Save Checks to file to be recalled later
 */
 
 
-#include "SaveStateManager.h"
-#include "../InputSystem.h"
+#include "ChecksManager.h"
+#include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include <fstream>
 #include <algorithm>

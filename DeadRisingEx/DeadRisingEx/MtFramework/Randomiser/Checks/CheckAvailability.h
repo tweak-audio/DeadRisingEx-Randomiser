@@ -1,6 +1,6 @@
 #pragma once
 #include "CheckSystem.h"
-#include "../TimeManager.h"
+#include "DeadRisingEx/MtFramework/Randomiser/TimeManager.h"
 #include <unordered_map>
 
 struct CheckAvailabilityInfo

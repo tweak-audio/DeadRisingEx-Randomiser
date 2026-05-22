@@ -1,6 +1,6 @@
 #include "CameraRefillReward.h"
-#include "../../uPlayerImpl.h"
-#include "../InputSystem.h"
+#include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
+#include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include <cstdint>
 
@@ -106,6 +106,8 @@ int CameraRefillReward::GetCurrentFilmCount()
     return *battery;
 }
 
+
+//-------Debugging-------
 void CameraRefillReward::ScanPlayerForCamera()
 {
     LogLine("[CameraRefill] === BATTERY DEBUG ===");

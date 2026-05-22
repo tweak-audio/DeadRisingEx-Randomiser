@@ -1,7 +1,7 @@
 #include "LevelUpRewardSystem.h"
-#include "../../uPlayerImpl.h"
-#include "../InputSystem.h"
 #include "RewardNotif.h"
+#include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
+#include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 
 #include "detours.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"

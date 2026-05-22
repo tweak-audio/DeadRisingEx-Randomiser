@@ -1,5 +1,5 @@
 #include "RewardNotif.h"
-#include "../InputSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include "DeadRisingEx/MtFramework/Rendering/ImGui/ImGuiRenderer.h"
 #include "DeadRisingEx/MtFramework/Rendering/ImGui/imgui.h"

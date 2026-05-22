@@ -1,11 +1,11 @@
 #include "PhotoProcessHook.h"
-#include "PhotoIDLogger.h"  // ← ADD THIS
+//#include "PhotoIDLogger.h" 
 #include "PPStickerCheck.h"
 #include "SurvivorPhotoCheck.h"
 #include "PsychopathPhotoCheck.h"
 #include "CheckSystem.h"
-#include "../InputSystem.h"
-#include "../../uPlayerImpl.h"
+#include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
+#include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
 
 #include "MtFramework/Utils/Utilities.h"
 #include <detours.h>
@@ -19,14 +19,14 @@ void __fastcall Hook_PhotoAward(void* param_1, uint16_t subjectId, int basePP, i
 {
     __try
     {
-        PhotoIDLogger::LogPhotoSubject(subjectId, basePP, multiplier);
+        //PhotoIDLogger::LogPhotoSubject(subjectId, basePP, multiplier);
         
         // Check if this is a PP sticker
         if (subjectId >= 0x80 && subjectId <= 0xE3)
         {
             CheckSystem::CompleteCheck(CheckType::PPSticker, subjectId);
         }
-        // Check if this photo ID maps to a survivor
+
         // Check if this photo ID maps to a survivor OR psychopath
         else
         {
@@ -64,7 +64,7 @@ void __fastcall Hook_PhotoAward(void* param_1, uint16_t subjectId, int basePP, i
 void InitScoopPhotoHook()
 {
     // Initialize the logger
-    PhotoIDLogger::Initialize();
+    //PhotoIDLogger::Initialize();
     
     void* addr = GetModuleAddress(0x14001eaf0);
     if (!addr)

@@ -4,7 +4,7 @@ This is so the randomizer can have logic
 
 #include "CheckAvailability.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
-#include "../InputSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 
 std::unordered_map<CheckId, CheckAvailabilityInfo, CheckIdHash> CheckAvailability::s_availabilityDB;
 

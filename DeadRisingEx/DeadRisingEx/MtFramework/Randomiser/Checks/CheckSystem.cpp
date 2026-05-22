@@ -4,7 +4,7 @@
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/SetItemRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/TimeChunkReward.h"
-#include "SaveStateManager.h"
+#include "ChecksManager.h"
 
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include <vector>
@@ -15,7 +15,7 @@
 #include <time.h>
 #include <string.h>
 
-static const char* SEED_FILE_PATH = "DeadRisingEx_Seed.dat";
+static const char* SEED_FILE_PATH = "DeadRisingEx_Randomiser_Seed.dat";
 
 // ─────────────────────────────────────────────
 //  State

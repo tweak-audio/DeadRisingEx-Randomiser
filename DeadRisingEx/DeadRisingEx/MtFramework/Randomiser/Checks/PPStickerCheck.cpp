@@ -1,6 +1,6 @@
 #include "PPStickerCheck.h"
 #include "CheckSystem.h"
-#include "../InputSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "MtFramework/Utils/Utilities.h"
 #include <detours.h>
 

@@ -1,7 +1,8 @@
+
+#include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
+#include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/ChecksManager.h"
 #include "TimeChunkReward.h"
-#include "../InputSystem.h"
-#include "../../uPlayerImpl.h"
-#include "../Checks/SaveStateManager.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include <stdio.h>
 

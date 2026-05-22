@@ -1,7 +1,7 @@
 #include "SurvivorPhotoCheck.h"
 #include "PsychopathPhotoCheck.h" 
 #include "CheckSystem.h"
-#include "../InputSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include "MtFramework/Utils/Utilities.h"
