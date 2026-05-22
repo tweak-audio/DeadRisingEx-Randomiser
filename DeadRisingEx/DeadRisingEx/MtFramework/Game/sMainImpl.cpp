@@ -3,6 +3,7 @@
 #include <MtFramework/Game/sMain.h>
 #include "DeadRisingEx/MtFramework/Rendering/ImGui/imgui.h"
 #include "DeadRisingEx/MtFramework/Rendering/ImGui/ImGuiRenderer.h"
+#include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include <detours.h>
 
 LRESULT Hook_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -42,6 +43,10 @@ bool sMainImpl::InstallHooks()
 
 LRESULT Hook_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+
+    // Call HandleDebugInput every message (acts like every frame)
+    HandleDebugInput(); 
+
     // If imgui is not initialized bail out.
     if (ImGuiRenderer::Instance()->IsInitialized() == false)
         return sMain::_WndProc(hwnd, msg, wParam, lParam);
