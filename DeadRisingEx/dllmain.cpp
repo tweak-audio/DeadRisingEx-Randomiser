@@ -39,19 +39,18 @@
 #include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
 
 #include "DeadRisingEx/MtFramework/Randomiser/TimeManager.h"
+#include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/CheckSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/PPStickerCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/SurvivorPhotoCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/PsychopathPhotoCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/PhotoProcessHook.h"
-//#include "DeadRisingEx/MtFramework/Randomiser/Checks/PsychopathPhotoHook.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/SetItemRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/LevelUpRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/CameraRefillReward.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/TimeChunkReward.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/RewardNotif.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
-
 
 
 // Version string for update 1 of the game exe.
@@ -68,11 +67,9 @@ void(__stdcall *pOutputDebugStringA)(LPCSTR lpOutputString) = OutputDebugStringA
 
 void __stdcall Hook_OutputDebugStringA(LPCSTR lpOutputString)
 {
-    // Print the message to the imgui console and the debugger.
     ImGuiConsole::Instance()->ConsolePrint(lpOutputString);
     pOutputDebugStringA(lpOutputString);
 
-    // If the debug log is enabled write all messages to debug log.
     if (ModConfig::Instance()->DebugLog == true)
         DebugLog::WriteMessage(lpOutputString);
 }
@@ -88,9 +85,10 @@ void ForcePatchInfinityMode()
     PatchBytes(pPatchAddr2, NopBytes, sizeof(NopBytes));
 }
 
-__declspec(dllexport) void DummyExport()
+__declspec(dllexport) __declspec(noinline) void DummyExport()
 {
-    // Required for detours.
+    volatile int x = 0;
+    (void)x;
 }
 
 bool __declspec(dllexport) LaunchDeadRisingEx(const char *psGameDirectory)
@@ -100,84 +98,58 @@ bool __declspec(dllexport) LaunchDeadRisingEx(const char *psGameDirectory)
     STARTUPINFO StartupInfo = { 0 };
     PROCESS_INFORMATION ProcInfo = { 0 };
 
-    // Initialize the startup info structure.
     StartupInfo.cb = sizeof(STARTUPINFO);
 
-    // Format the file paths for the game exe and ex dll.
     snprintf(sGameExe, sizeof(sGameExe), "%s\\DeadRising.exe", psGameDirectory);
     snprintf(sExDll, sizeof(sExDll), "%s\\DeadRisingEx.dll", psGameDirectory);
 
-    // Build our list of dlls to inject.
-    LPCSTR DllsToInject[1] =
-    {
-        sExDll
-    };
+    LPCSTR DllsToInject[1] = { sExDll };
 
-    // Create the game process in a suspended state with our dll.
-    if (DetourCreateProcessWithDllsA(sGameExe, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, 
+    if (DetourCreateProcessWithDllsA(sGameExe, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL,
         psGameDirectory, &StartupInfo, &ProcInfo, 1, DllsToInject, NULL) == FALSE)
     {
-        // Failed to create the game process.
         return false;
     }
 
-    // Resume the process.
     ResumeThread(ProcInfo.hThread);
-
-    // Close the process and thread handles.
     CloseHandle(ProcInfo.hProcess);
     CloseHandle(ProcInfo.hThread);
     return true;
 }
 
-BOOL APIENTRY DllMain( HMODULE hModule,
-                       DWORD  ul_reason_for_call,
-                       LPVOID lpReserved
-                     )
+BOOL APIENTRY DllMain(HMODULE hModule,
+                      DWORD  ul_reason_for_call,
+                      LPVOID lpReserved)
 {
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
     {
+       
         CHAR sModulePath[MAX_PATH] = { 0 };
         CHAR sModuleName[32] = { 0 };
 
-        // Set the module handle.
         SnatcherModuleHandle = GetModuleHandle(NULL);
 
-        // Get the name of the exe we are running under.
         GetModuleFileName(GetModuleHandle(NULL), sModulePath, sizeof(sModulePath));
         _splitpath_s(sModulePath, nullptr, 0, nullptr, 0, sModuleName, sizeof(sModuleName), nullptr, 0);
 
-        // Check if we were run from the launcher or the game process.
         if (_stricmp(sModuleName, "DeadRisingLauncher") == 0)
-        {
-            // Bail out as we are not in the game process.
             return TRUE;
-        }
 
-        // Check the game version string to make sure we are loading with the correct game version.
         if (strncmp(sMain::mBuildVersion, g_SupportedGameVersionString, strlen(g_SupportedGameVersionString)) != 0)
         {
-            // Game version not supported, display an error and kill the process.
             MessageBoxW(NULL, L"This version of Dead Rising is not supported by DeadRisingEx! Please update the game to the Oct 6th 2016 version in order to use DeadRisingEx.",
                 L"Game version not supported", MB_OK | MB_ICONERROR | MB_APPLMODAL);
             TerminateProcess(GetCurrentProcess(), 0xBAD0C0DE);
         }
 
-        // Load the mod config file.
         if (ModConfig::Instance()->LoadConfigFile("DeadRisingEx.ini") == false)
-        {
-            // Failed to load the mod config.
             DbgPrint("Failed to load mod config file, using default settings!\n");
-        }
 
-        // Register built in types.
-        /*RegisterTypeInfo(&Vector3TypeInfo);
-        RegisterTypeInfo(&Vector4TypeInfo);
-        RegisterTypeInfo(&Matrix4x4TypeInfo);*/
+        if (ModConfig::Instance()->DebugLog == true)
+            DebugLog::Initialize();
 
-        // Register types and commands.
         MtObjectImpl::RegisterTypeInfo();
         sSnatcherToolImpl::RegisterTypeInfo();
         sResourceImpl::InitializeTypeInfo();
@@ -191,29 +163,18 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         MtHeapAllocatorImpl::RegisterTypeInfo();
         ImGuiRenderer::RegisterTypeInfo();
 
-        InitializeRewardNotifications();
-
         if (ModConfig::Instance()->RecursiveGrenade == true)
             uOm08Impl::RegisterTypeInfo();
 
-        // Begin the detour transaction.
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
-
-        // If the debug log is enabled hook debug output to file.
-        if (ModConfig::Instance()->DebugLog == true)
-            DebugLog::Initialize();
 
 #ifdef _DEBUG
         ForcePatchInfinityMode();
 #endif
 
-        // Hook debug output to the imgui console.
         DetourAttach((void**)&pOutputDebugStringA, Hook_OutputDebugStringA);
 
-        //DetourAttach((void**)&LoadSpriteData, Hook_LoadSpriteData);
-
-        // Hook functions.
         Utilities::InstallHooks();
         sRenderImpl::InstallHooks();
         sSnatcherPadImpl::InstallHooks();
@@ -224,13 +185,11 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         uNpcMarkerImpl::InstallHooks();
         uPhotoImpl::InstallHooks();
         uItemImpl::InstallHooks();
-        
 
         uPlayerImpl::RegisterTypeInfo();
         uPPStickerImpl::RegisterTypeInfo();
         SurvivorPhotoCheck::RegisterTypeInfo();
         PsychopathPhotoCheck::RegisterTypeInfo();
-        
 
         if (ArchiveOverlay::Instance()->Initialize() == false)
         {
@@ -240,8 +199,6 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
         if (DetourTransactionCommit() != NO_ERROR)
             TerminateProcess(GetCurrentProcess(), 0xBAD0C0DE);
-
-        // Register check ranges and initialize BEFORE any hooks can fire
 
         InitScoopPhotoHook();
         //InitPsychopathPhotoHook();
@@ -285,7 +242,6 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         // Initialize notification hook system (for displaying rewards)
         InitializeRewardNotifications();
 
-        // Dummy function to force non-used symbols to be emitted in the pdb file.
         ForceSymbolsHelper();
         break;
     }
@@ -293,9 +249,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     case DLL_THREAD_DETACH:
         break;
     case DLL_PROCESS_DETACH:
-        ShutdownRewardNotifications();
+        ShutdownRewardNotifications(); 
         break;
     }
     return TRUE;
 }
-
