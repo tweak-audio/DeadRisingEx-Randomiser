@@ -17,10 +17,13 @@ extern bool g_statsResolved;
 
 void LogLine(const char* text)
 {
-    ImGuiConsole::Instance()->ConsolePrint(text);
-
+    // Write to file first, before ImGui may be available
     if (ModConfig::Instance()->DebugLog)
         DebugLog::WriteMessage(text);
+
+    // Only call ImGui if it's ready
+    if (ImGuiConsole::Instance() != nullptr)
+        ImGuiConsole::Instance()->ConsolePrint(text);
 }
 
 // ─────────────────────────────────────────────
