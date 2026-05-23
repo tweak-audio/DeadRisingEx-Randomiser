@@ -7,6 +7,7 @@
 #include "Rewards/CameraRefillReward.h"
 #include "Rewards/TimeChunkReward.h"
 #include "Rewards/RewardNotif.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/ClothingRewardSystem.h"
 
 #include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
@@ -112,23 +113,20 @@ void HandleDebugInput()
     
     if (GetAsyncKeyState('1') & 1)
     {
-        ShowRewardNotification(RewardType::LevelUp);
+        GiveNextClothingReward();
     }
 
-    // '2' — fire current template
     if (GetAsyncKeyState('2') & 1)
     {
 
     }
 
-    // '3' — next template ID
     if (GetAsyncKeyState('3') & 1)
     {
 
     }
 
-    // '4' — previous template ID  
-    if (GetAsyncKeyState('4') & 1)  // move your camera key elsewhere temporarily
+    if (GetAsyncKeyState('4') & 1)
     {
 
     }

@@ -8,6 +8,7 @@
 #include "MtFramework/Game/sMain.h"
 
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/LevelUpRewardSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/ClothingCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/FastFrank.h"
 
@@ -66,6 +67,9 @@ void* __stdcall Hook_uPlayer_ctor(void* thisptr)
     uPlayerInstance = thisptr;
     void* result = uPlayer_ctor(thisptr);
     FastFrank::OnPlayerConstruct(thisptr);
+
+    //Initialise costume statew machine obj
+    ClothingCheck::SetStateMachineObj(thisptr);
     
     char buf[128];
     sprintf_s(buf, "[HOOK] uPlayer constructed at %p", uPlayerInstance);
@@ -96,6 +100,7 @@ void uPlayerImpl::RegisterTypeInfo()
     DetourAttach((void**)&SetPlayerLevel, Hook_SetPlayerLevel);
     DetourAttach((void**)&originalXPAccumulator, Hook_XPAccumulator);
     DetourAttach((void**)&originalLevelUpCallback, Hook_LevelUpCallback);
+    ClothingCheck::InitializeHooks();
     
     // Hook game state tick to capture the game state manager
     Original_GameStateTick = (GameStateTickFunc)GetModuleAddress(0x140204350);
@@ -114,3 +119,4 @@ void uPlayerImpl::SetFastFrank(bool enabled)        { FastFrank::SetEnabled(enab
 bool uPlayerImpl::IsFastFrankEnabled()              { return FastFrank::IsEnabled(); }
 void uPlayerImpl::ApplyFastFrank(void* statsObject) { FastFrank::ApplyToStatsObject(statsObject); }
 void uPlayerImpl::SetFastFrankSpeed(int speedLevel) { FastFrank::SetSpeedLevel(speedLevel); }
+
