@@ -1,35 +1,21 @@
 TODO:
-- hook time
-    -split into sections and make available as rewards (DONE)
-
 - hook cases
     - add to checks
-
-- add logic to seed generation (done)
-    - correct survivor and psychopath hex with correct values (done)
-
-- store already completed checks on per seed basis (DONE!)
-
-- transfer over to github
-    - connect to github
+- hook clothing
+    - add to checks
 
 - transform into archipelago
 
 TO IMPROVE:
-- if 2 checks give level up at same time only 1 level up applies (fixed)
-- seems like if a survivor is nearby and you photograph a pp sticker you get both checks (possibly fixed?)
+- check if seed exists and seed generation seem to be the wrong way round
+    - fix creating new seed evertime game loads
 
-
+- Clean up debug code
 
 Ideas:
-- hook clothing
-    - add to checks
 - hook items
     - add to checks
-- refill camera as reward (done)
 -randomise maintanance key? other blue items?
-
-- create custom text popups using the pp gained popup
 
 - Checks for survivors joined
 - Checks for survivors escorted back
@@ -37,3 +23,31 @@ Ideas:
 
 - add check for save file 
     - maybe make it only work on 1 save file 
+
+- Completing survivor scoop check?
+
+- Randomise survivor spawn times???
+    - &/psychopath??
+
+
+
+DONE:
+
+- transfer over to github (done)
+    - connect to github
+
+- hook time
+    -split into sections and make available as rewards (DONE)
+
+- add logic to seed generation (done)
+    - correct survivor and psychopath hex with correct values (done)
+
+
+- if 2 checks give level up at same time only 1 level up applies (fixed)
+- seems like if a survivor is nearby and you photograph a pp sticker you get both checks (possibly fixed?)
+
+- store already completed checks on per seed basis (DONE!)
+
+- refill camera as reward (done)
+
+- create custom text popups using the pp gained popup (had to work around this, seems imposible to write custom text to existing system)
