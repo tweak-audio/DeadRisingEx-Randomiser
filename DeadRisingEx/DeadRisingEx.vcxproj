@@ -217,6 +217,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)Detours\lib.x64;$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>detours.lib;LibMtFramework.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>DeadRisingEx.def</ModuleDefinitionFile>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

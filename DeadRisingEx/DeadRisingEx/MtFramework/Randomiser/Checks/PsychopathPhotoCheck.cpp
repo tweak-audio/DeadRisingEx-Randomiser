@@ -120,6 +120,22 @@ static uint32_t GetPsychopathIdFromPath(const char* path)
     return 0;
 }
 
+static uint32_t SafeReadRuntimeId(void* npcObject, bool& outValid)
+{
+    uint32_t runtimeId = 0;
+    outValid = false;
+    __try
+    {
+        runtimeId = *(uint32_t*)((uintptr_t)npcObject + 0x108);
+        outValid = true;
+    }
+    __except(EXCEPTION_EXECUTE_HANDLER)
+    {
+        outValid = false;
+    }
+    return runtimeId;
+}
+
 // ─────────────────────────────────────────────
 //  Public registration function (called from survivor hook)
 // ─────────────────────────────────────────────
@@ -127,41 +143,31 @@ static uint32_t GetPsychopathIdFromPath(const char* path)
 void PsychopathPhotoCheck::RegisterPsychopathScoop(void* npcObject, const char* scoopPath)
 {
     uint32_t psychopathId = GetPsychopathIdFromPath(scoopPath);
-    
+
     if (psychopathId != 0)
     {
         bool isNew = s_knownPsychopaths.insert(psychopathId).second;
-        
+
         if (isNew)
         {
             s_npcObjectToPsychopathId[npcObject] = psychopathId;
-            
-            uint32_t runtimeId = 0;
+
             bool runtimeIdValid = false;
-            
-            __try
-            {
-                runtimeId = *(uint32_t*)((uintptr_t)npcObject + 0x108);
-                runtimeIdValid = true;
-            }
-            __except(EXCEPTION_EXECUTE_HANDLER)
-            {
-                runtimeIdValid = false;
-            }
-            
+            uint32_t runtimeId = SafeReadRuntimeId(npcObject, runtimeIdValid);
+
             if (runtimeIdValid)
             {
                 s_runtimeIdToPsychopathId[runtimeId] = psychopathId;
-                
+
                 char buf[256];
-                sprintf_s(buf, "[PSYCHOPATH SCOOP] Registered %s → psychopathId=0x%X, npcObject=%p, runtimeId=0x%X", 
+                sprintf_s(buf, "[PSYCHOPATH SCOOP] Registered %s → psychopathId=0x%X, npcObject=%p, runtimeId=0x%X",
                     scoopPath, psychopathId, npcObject, runtimeId);
                 LogLine(buf);
             }
             else
             {
                 char buf[256];
-                sprintf_s(buf, "[PSYCHOPATH SCOOP] Registered %s → psychopathId=0x%X, npcObject=%p (runtime ID not readable yet)", 
+                sprintf_s(buf, "[PSYCHOPATH SCOOP] Registered %s → psychopathId=0x%X, npcObject=%p (runtime ID not readable yet)",
                     scoopPath, psychopathId, npcObject);
                 LogLine(buf);
             }
