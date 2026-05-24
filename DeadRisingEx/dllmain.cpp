@@ -45,11 +45,13 @@
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/SurvivorPhotoCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/PsychopathPhotoCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/PhotoProcessHook.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/ClothingCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/SetItemRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/LevelUpRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/CameraRefillReward.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/TimeChunkReward.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/RewardNotif.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/ClothingRewardSystem.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
 
 
@@ -230,6 +232,13 @@ BOOL APIENTRY DllMain(HMODULE hModule,
                     CameraRefillReward::SetFilmCount(30);
                     ShowRewardNotification(RewardType::BatteryRefill);
                     break;
+
+                case RewardType::Clothing:
+                    {
+                        ClothingRewardResult result = GiveNextClothingReward();
+                        ShowRewardNotification(RewardType::Clothing, result.name, 0);
+                        break;
+                    }
                     
                 case RewardType::None:
                 default:

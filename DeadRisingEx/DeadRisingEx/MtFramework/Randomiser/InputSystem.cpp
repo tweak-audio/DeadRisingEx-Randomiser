@@ -133,25 +133,20 @@ void HandleDebugInput()
     
     if (GetAsyncKeyState('5') & 1)
     {
-        LogLine("[CAMERA] Setting battery to 30...");
-        CameraRefillReward::SetFilmCount(30);
-        int current = CameraRefillReward::GetCurrentFilmCount();
-        char buf[64];
-        sprintf_s(buf, "[CAMERA] Battery is now: %d", current);
-        LogLine(buf);
-    }
-
-    if (GetAsyncKeyState('5') & 1)
-    {
 
     }
 
     if (GetAsyncKeyState('6') & 1)
     {
-        
+
     }
 
     if (GetAsyncKeyState('7') & 1)
+    {
+        
+    }
+
+    if (GetAsyncKeyState('8') & 1)
     {
         
     }

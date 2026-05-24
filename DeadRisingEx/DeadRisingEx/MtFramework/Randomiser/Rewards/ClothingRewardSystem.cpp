@@ -1,4 +1,5 @@
 #include "ClothingReward.h"
+#include "ClothingRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/CheckSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/ClothingReward.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
@@ -21,7 +22,7 @@ struct CostumeEntry
 
 static const CostumeEntry g_costumePool[] =
 {
-    // Slot 0 - Tops&Trousers
+    // Slot 0 - Outfit
     { 0,  1,  "Top 01" },
     { 0,  2,  "Top 02" },
     { 0,  3,  "Top 03" },
@@ -105,13 +106,11 @@ static const CostumeEntry g_costumePool[] =
     { 3, 10,  "Accessory 10" },
 
     // Slot 4 - Watch
-    { 4,  1,  "Slot4 01" },
+    //{ 4,  1,  "Slot4 01" },
 
     // Slot 5 - Camera
-    { 5,  1,  "Slot5 01" },
+    //{ 5,  1,  "Slot5 01" },
 };
-
-constexpr int COSTUME_POOL_SIZE = sizeof(g_costumePool) / sizeof(g_costumePool[0]);
 
 // ─────────────────────────────────────────────
 //  Slot state
@@ -185,7 +184,7 @@ void ResetClothingRewardSlots()
 //  Public API
 // ─────────────────────────────────────────────
 
-int GiveNextClothingReward()
+ClothingRewardResult GiveNextClothingReward()
 {
     if (!g_slotsInitialized)
         GenerateClothingRewardSlots();
@@ -193,7 +192,7 @@ int GiveNextClothingReward()
     if (g_nextSlot >= COSTUME_POOL_SIZE)
     {
         LogLine("[ClothingRewardSystem] No more clothing rewards");
-        return -1;
+        return { -1, nullptr };
     }
 
     const CostumeEntry& entry = g_rewardSlots[g_nextSlot];
@@ -205,5 +204,5 @@ int GiveNextClothingReward()
     LogLine(buf);
 
     g_nextSlot++;
-    return entry.slot * 100 + entry.id;
+    return { entry.slot * 100 + entry.id, entry.name };
 }

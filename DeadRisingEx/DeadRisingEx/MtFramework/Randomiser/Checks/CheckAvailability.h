@@ -25,4 +25,5 @@ private:
     static void RegisterPPStickerTimes();
     static void RegisterSurvivorTimes();
     static void RegisterPsychopathTimes();
+    static void RegisterClothingTimes();
 };

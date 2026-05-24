@@ -15,6 +15,7 @@ void CheckAvailability::Initialize()
     RegisterPPStickerTimes();
     RegisterSurvivorTimes();
     RegisterPsychopathTimes();
+    RegisterClothingTimes();
     
     char buf[128];
     sprintf_s(buf, "[AVAILABILITY] Registered %d checks", (int)s_availabilityDB.size());
@@ -656,6 +657,53 @@ void CheckAvailability::RegisterPsychopathTimes()
     };
 }
 
+void CheckAvailability::RegisterClothingTimes()
+{
+    // All clothing pickups are available from game start —
+    // stores are accessible immediately and none are story-gated.
+
+    // Slot 0 - Outfits
+    for (int id = 0; id <= 26; id++)
+        s_availabilityDB[{CheckType::Clothing, (uint32_t)id}] = {
+            TimeManager::GAME_START_TICK, false,
+            "Clothing - Slot 0 Outfit"
+        };
+    for (int id = 28; id <= 33; id++)
+        s_availabilityDB[{CheckType::Clothing, (uint32_t)id}] = {
+            TimeManager::GAME_START_TICK, false,
+            "Clothing - Slot 0 Outfit"
+        };
+    s_availabilityDB[{CheckType::Clothing, 38}] = {
+        TimeManager::GAME_START_TICK, false, "Clothing - Slot 0 Outfit" };
+    for (int id = 40; id <= 42; id++)
+        s_availabilityDB[{CheckType::Clothing, (uint32_t)id}] = {
+            TimeManager::GAME_START_TICK, false,
+            "Clothing - Slot 0 Outfit"
+        };
+
+    // Slot 1 - Shoes
+    for (int id = 100; id <= 109; id++)
+        s_availabilityDB[{CheckType::Clothing, (uint32_t)id}] = {
+            TimeManager::GAME_START_TICK, false,
+            "Clothing - Slot 1 Shoes"
+        };
+
+    // Slot 2 - Head
+    for (int id : {202, 203, 204, 205, 207, 208, 209, 210, 211, 214, 215, 216, 217, 219})
+        s_availabilityDB[{CheckType::Clothing, (uint32_t)id}] = {
+            TimeManager::GAME_START_TICK, false,
+            "Clothing - Slot 2 Head Wear"
+        };
+
+    // Slot 3 - Accessories
+    for (int id : {301, 302, 304, 306, 310})
+        s_availabilityDB[{CheckType::Clothing, (uint32_t)id}] = {
+            TimeManager::GAME_START_TICK, false,
+            "Clothing - Slot 3 Accessory"
+        };
+
+}
+
 uint32_t CheckAvailability::GetEarliestTime(CheckId check)
 {
     auto it = s_availabilityDB.find(check);
@@ -703,6 +751,9 @@ std::string CheckAvailability::GetCheckName(CheckId check)
             break;
         case CheckType::PsychopathPhoto:
             sprintf_s(buf, "Psychopath #%u", check.id);
+            break;
+        case CheckType::Clothing:
+            sprintf_s(buf, "Costume #%u", check.id);
             break;
         default:
             sprintf_s(buf, "Unknown Check #%u", check.id);

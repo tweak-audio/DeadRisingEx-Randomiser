@@ -4,6 +4,7 @@
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/SetItemRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/TimeChunkReward.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/ClothingRewardSystem.h"
 #include "ChecksManager.h"
 
 #include "DeadRisingEx/Utilities/DebugLog.h"
@@ -38,6 +39,8 @@ static std::vector<CheckCallback>                   s_callbacks;
 static uint32_t s_seed     = 0;
 static uint32_t s_rngState = 0;
 static bool     s_ready    = false;
+
+static int s_setItemCount = 0;
 
 // ─────────────────────────────────────────────
 //  RNG
@@ -91,38 +94,83 @@ void CheckSystem::GenerateRewardMap()
     int total = (int)s_allChecks.size();
     if (total == 0) return;
 
-    std::vector<Reward> pool;
-    pool.reserve(total);
+    RngSeed(s_seed);
 
-    // Add rewards
+    // Fixed rewards
+    std::vector<Reward> levelUps, batteries, timeChunks;
     for (int i = 0; i < LEVEL_UP_REWARDS; i++)
-        pool.push_back({ RewardType::LevelUp, 0 });
+        levelUps.push_back({ RewardType::LevelUp, 0 });
     for (int i = 0; i < BATTERY_REFILL_REWARDS; i++)
-        pool.push_back({ RewardType::BatteryRefill, 0 });
-    
-    // Add time chunk rewards (mode-agnostic)
+        batteries.push_back({ RewardType::BatteryRefill, 0 });
     for (int i = 0; i < TIME_CHUNK_REWARDS; i++)
-        pool.push_back({ RewardType::TimeChunk, i + 1 });  // chunks 1-11 or 1-5
-    
-    // Fill remaining with SetItem
-    while ((int)pool.size() < total)
-        pool.push_back({ RewardType::SetItem, 0 });
-    pool.resize(total);
+        timeChunks.push_back({ RewardType::TimeChunk, i + 1 });
 
-    // Fisher-Yates shuffle
+    // Randomly split remaining slots between clothing and set items
+    int remaining = total - LEVEL_UP_REWARDS - BATTERY_REFILL_REWARDS - TIME_CHUNK_REWARDS;
+    int maxClothing = min(remaining, COSTUME_POOL_SIZE);  // can't exceed pool size
+    int clothingCount = RngRange(CLOTHING_REWARDS_MIN, maxClothing + 1);
+    int setItemCount  = remaining - clothingCount;
+    s_setItemCount = setItemCount; 
+
+    char buf[128];
+    sprintf_s(buf, "[CHECKS] Reward split: %d clothing, %d set items (seed %u)",
+              clothingCount, setItemCount, s_seed);
+    LogLine(buf);
+
+    std::vector<Reward> clothing, setItems;
+    for (int i = 0; i < clothingCount; i++)
+        clothing.push_back({ RewardType::Clothing, 0 });
+    for (int i = 0; i < setItemCount; i++)
+        setItems.push_back({ RewardType::SetItem, 0 });
+
+    // Interleave: spread each type evenly across the check list
+    std::vector<Reward> pool(total, { RewardType::SetItem, 0 });
+
+    auto PlaceEvenly = [&](std::vector<Reward>& rewards)
+    {
+        if (rewards.empty()) return;
+        float step = (float)total / (float)rewards.size();
+        for (int i = 0; i < (int)rewards.size(); i++)
+        {
+            int idx = (int)(step * i + step * 0.5f) % total;
+            // Find nearest empty (SetItem placeholder) slot
+            for (int offset = 0; offset < total; offset++)
+            {
+                int candidate = (idx + offset) % total;
+                if (pool[candidate].type == RewardType::SetItem &&
+                    pool[candidate].value == 0)
+                {
+                    pool[candidate] = rewards[i];
+                    break;
+                }
+            }
+        }
+    };
+
+    // Place time chunks first (most important for beatability)
+    PlaceEvenly(timeChunks);
+    PlaceEvenly(levelUps);
+    PlaceEvenly(batteries);
+    PlaceEvenly(clothing);
+    // SetItem fills all remaining slots — already in pool as placeholders
+
+    // Fisher-Yates shuffle within each reward type's allocated positions
+    // to add randomness while preserving spread
     RngSeed(s_seed);
     for (int i = total - 1; i > 0; i--)
     {
         int j = RngRange(0, i + 1);
         Reward tmp = pool[i];
-        pool[i] = pool[j];
-        pool[j] = tmp;
+        pool[i]    = pool[j];
+        pool[j]    = tmp;
     }
 
     s_rewardMap.clear();
     for (int i = 0; i < total; i++)
         s_rewardMap[s_allChecks[i]] = pool[i];
 }
+
+int CheckSystem::GetSetItemCount() { return s_setItemCount; }
 
 bool CheckSystem::IsSeedBeatable()
 {
@@ -531,29 +579,47 @@ void CheckSystem::Initialize()
     TimeChunkReward::Initialize();
     
     // Register all check ranges BEFORE building check list
-    // PP Stickers (no issues)
-    RegisterCheckRange(CheckType::PPSticker, 128, 227);
 
-    // Survivors - register only the ranges you have
-    RegisterCheckRange(CheckType::SurvivorPhoto, 0x4D0, 0x4EB);  // 0x4D0-0x4EB (no 0x4EC)
-    RegisterCheckRange(CheckType::SurvivorPhoto, 0x4ED, 0x4F1);  // 0x4ED-0x4F1 (skip 0x4EC)
-    RegisterCheckRange(CheckType::SurvivorPhoto, 0x510, 0x510);  // 0x510 only (no 0x511)
-    RegisterCheckRange(CheckType::SurvivorPhoto, 0x512, 0x512);  // 0x512 only (no 0x513)
-    RegisterCheckRange(CheckType::SurvivorPhoto, 0x514, 0x514);  // 0x514 only (no 0x515)
-    RegisterCheckRange(CheckType::SurvivorPhoto, 0x516, 0x516);  // 0x516 only
-    RegisterCheckRange(CheckType::SurvivorPhoto, 0x51C, 0x520);  // 0x51C-0x520 (skip gaps)
-    RegisterCheckRange(CheckType::SurvivorPhoto, 0x522, 0x522);  // 0x522 only (no 0x523)
-    RegisterCheckRange(CheckType::SurvivorPhoto, 0x524, 0x527);  // 0x524-0x527 (no 0x528)
-    RegisterCheckRange(CheckType::SurvivorPhoto, 0x529, 0x52A);  // 0x529-0x52A
-    RegisterCheckRange(CheckType::SurvivorPhoto, 0x550, 0x556);  // 0x550-0x556
-    RegisterCheckRange(CheckType::SurvivorPhoto, 0x560, 0x568);  // 0x560-0x568
-    RegisterCheckRange(CheckType::SurvivorPhoto, 0x56C, 0x56C);  // 0x56C only
+    //Photosanity
+        // PP Stickers 
+        RegisterCheckRange(CheckType::PPSticker, 128, 227);
 
-    // Psychopaths - register only what you have (no 0x6E1)
-    RegisterCheckRange(CheckType::PsychopathPhoto, 0x6D4, 0x6DB);  // Kent through Jo
-    RegisterCheckRange(CheckType::PsychopathPhoto, 0x6DC, 0x6DF);  // Convicts + Cletus
-    RegisterCheckRange(CheckType::PsychopathPhoto, 0x6E3, 0x6E3);  // Carlito
-    RegisterCheckRange(CheckType::PsychopathPhoto, 0x6E6, 0x6E9);  // Isabella + Hall Family (no 0x6E1)
+        // Survivors - register only the ranges you have
+        RegisterCheckRange(CheckType::SurvivorPhoto, 0x4D0, 0x4EB);  // 0x4D0-0x4EB (no 0x4EC)
+        RegisterCheckRange(CheckType::SurvivorPhoto, 0x4ED, 0x4F1);  // 0x4ED-0x4F1 (skip 0x4EC)
+        RegisterCheckRange(CheckType::SurvivorPhoto, 0x510, 0x510);  // 0x510 only (no 0x511)
+        RegisterCheckRange(CheckType::SurvivorPhoto, 0x512, 0x512);  // 0x512 only (no 0x513)
+        RegisterCheckRange(CheckType::SurvivorPhoto, 0x514, 0x514);  // 0x514 only (no 0x515)
+        RegisterCheckRange(CheckType::SurvivorPhoto, 0x516, 0x516);  // 0x516 only
+        RegisterCheckRange(CheckType::SurvivorPhoto, 0x51C, 0x520);  // 0x51C-0x520 (skip gaps)
+        RegisterCheckRange(CheckType::SurvivorPhoto, 0x522, 0x522);  // 0x522 only (no 0x523)
+        RegisterCheckRange(CheckType::SurvivorPhoto, 0x524, 0x527);  // 0x524-0x527 (no 0x528)
+        RegisterCheckRange(CheckType::SurvivorPhoto, 0x529, 0x52A);  // 0x529-0x52A
+        RegisterCheckRange(CheckType::SurvivorPhoto, 0x550, 0x556);  // 0x550-0x556
+        RegisterCheckRange(CheckType::SurvivorPhoto, 0x560, 0x568);  // 0x560-0x568
+        RegisterCheckRange(CheckType::SurvivorPhoto, 0x56C, 0x56C);  // 0x56C only
+
+        // Psychopaths - register only what you have (no 0x6E1)
+        RegisterCheckRange(CheckType::PsychopathPhoto, 0x6D4, 0x6DB);  // Kent through Jo
+        RegisterCheckRange(CheckType::PsychopathPhoto, 0x6DC, 0x6DF);  // Convicts + Cletus
+        RegisterCheckRange(CheckType::PsychopathPhoto, 0x6E3, 0x6E3);  // Carlito
+        RegisterCheckRange(CheckType::PsychopathPhoto, 0x6E6, 0x6E9);  // Isabella + Hall Family (no 0x6E1)
+
+    //Pickups
+        // Clothing pickups — 66 world checks (achievement unlocks excluded)
+        RegisterCheckRange(CheckType::Clothing,  0,  26);   // slot 0: cos000-cos026
+        RegisterCheckRange(CheckType::Clothing, 28,  33);   // slot 0: cos028-cos033
+        RegisterCheckRange(CheckType::Clothing, 38,  38);   // slot 0: cos038
+        RegisterCheckRange(CheckType::Clothing, 40,  42);   // slot 0: cos040-cos042
+        RegisterCheckRange(CheckType::Clothing, 100, 109);  // slot 1: cos100-cos109
+        RegisterCheckRange(CheckType::Clothing, 202, 205);  // slot 2: cos202-cos205
+        RegisterCheckRange(CheckType::Clothing, 207, 211);  // slot 2: cos207-cos211
+        RegisterCheckRange(CheckType::Clothing, 214, 217);  // slot 2: cos214-cos217
+        RegisterCheckRange(CheckType::Clothing, 219, 219);  // slot 2: cos219
+        RegisterCheckRange(CheckType::Clothing, 301, 302);  // slot 3: cos301-cos302
+        RegisterCheckRange(CheckType::Clothing, 304, 304);  // slot 3: cos304
+        RegisterCheckRange(CheckType::Clothing, 306, 306);  // slot 3: cos306
+        RegisterCheckRange(CheckType::Clothing, 310, 310);  // slot 3: cos310
         
     // Build the check list from registered ranges
     RebuildCheckList();

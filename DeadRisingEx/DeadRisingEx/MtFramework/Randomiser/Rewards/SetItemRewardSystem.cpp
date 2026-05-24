@@ -101,7 +101,7 @@ const char* GetItemNameFromId(DWORD itemId)
 //  Slot state
 // ─────────────────────────────────────────────
 
-static DWORD g_rewardSlots[SET_ITEM_REWARDS] = {};
+static std::vector<DWORD> g_rewardSlots;
 static int   g_nextSlot          = 0;
 static bool  g_slotsInitialized  = false;
 
@@ -130,39 +130,32 @@ void GenerateRewardSlots()
 {
     if (g_slotsInitialized) return;
 
-    // Seed from CheckSystem so slots match the run seed
     uint32_t seed = CheckSystem::GetSeed();
     if (seed == 0)
-    {
-        LogLine("[RewardSystem] Warning: seed is 0, slots may not be deterministic");
-    }
+        LogLine("[RewardSystem] Warning: seed is 0");
 
-    // Use a different RNG offset from CheckSystem to avoid
-    // identical sequences — XOR with a constant
+    int setItemCount = CheckSystem::GetSetItemCount();  // ← runtime count
+
     RngSeed(seed ^ 0xCAFEBABE);
 
-    // Build a shuffled pool tiled to fill all slots
-    DWORD pool[SET_ITEM_REWARDS];
-    for (int i = 0; i < SET_ITEM_REWARDS; i++)
-        pool[i] = g_itemPool[i % ITEM_POOL_SIZE];
+    // Build shuffled pool tiled to fill all slots
+    g_rewardSlots.resize(setItemCount);
+    for (int i = 0; i < setItemCount; i++)
+        g_rewardSlots[i] = g_itemPool[i % ITEM_POOL_SIZE];
 
-    // Fisher-Yates shuffle
-    for (int i = SET_ITEM_REWARDS - 1; i > 0; i--)
+    for (int i = setItemCount - 1; i > 0; i--)
     {
-        int j    = RngRange(0, i + 1);
-        DWORD tmp = pool[i];
-        pool[i]   = pool[j];
-        pool[j]   = tmp;
+        int j         = RngRange(0, i + 1);
+        DWORD tmp     = g_rewardSlots[i];
+        g_rewardSlots[i] = g_rewardSlots[j];
+        g_rewardSlots[j] = tmp;
     }
-
-    for (int i = 0; i < SET_ITEM_REWARDS; i++)
-        g_rewardSlots[i] = pool[i];
 
     g_slotsInitialized = true;
     g_nextSlot         = 0;
 
     char buf[64];
-    sprintf_s(buf, "[RewardSystem] %d slots generated for seed %u", SET_ITEM_REWARDS, seed);
+    sprintf_s(buf, "[RewardSystem] %d slots generated for seed %u", setItemCount, seed);
     LogLine(buf);
 }
 
@@ -258,7 +251,7 @@ int SpawnNextRewardSlotNearPlayer()
     if (!g_slotsInitialized)
         GenerateRewardSlots();
 
-    if (g_nextSlot >= SET_ITEM_REWARDS)
+    if (g_nextSlot >= (int)g_rewardSlots.size())
     {
         LogLine("[RewardSystem] No more slots to spawn");
         return -1;

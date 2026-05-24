@@ -1,6 +1,7 @@
 #include "SurvivorPhotoCheck.h"
 #include "PsychopathPhotoCheck.h"
 #include "PPStickerCheck.h"
+#include "ClothingCheck.h"
 
 #pragma once
 #include <cstdint>
@@ -17,12 +18,9 @@ constexpr bool USE_6_HOUR_CHUNKS = true;  // Set to false for 12-hour chunks
 constexpr int TIME_CHUNK_REWARDS = USE_6_HOUR_CHUNKS ? 11 : 5;  // 11 for 6hr, 5 for 12hr
 constexpr int LEVEL_UP_REWARDS = 49;
 constexpr int BATTERY_REFILL_REWARDS = 10;
+constexpr int CLOTHING_REWARDS_MIN = 30; 
 
-constexpr int TOTAL_CHECKS = TOTAL_PPSTICKERS + TOTAL_SURVIVORS + TOTAL_PSYCHOPATHS;
-constexpr int SET_ITEM_REWARDS = TOTAL_CHECKS - LEVEL_UP_REWARDS - BATTERY_REFILL_REWARDS - TIME_CHUNK_REWARDS; // remaining checks give set items
-
-// All rewards must sum to TOTAL_CHECKS:
-// LEVEL_UP_REWARDS + BATTERY_REFILL_REWARDS + TIME_CHUNK_6HR_REWARDS + TIME_CHUNK_12HR_REWARDS + SET_ITEM_REWARDS = TOTAL_CHECKS
+constexpr int TOTAL_CHECKS = TOTAL_PPSTICKERS + TOTAL_SURVIVORS + TOTAL_PSYCHOPATHS + TOTAL_COSTUMES;
 
 // ─────────────────────────────────────────────
 //  Check types
@@ -33,10 +31,11 @@ enum class CheckType : uint32_t
     SurvivorPhoto       = 1,
     SurvivorJoin        = 2,
     PsychopathPhoto     = 3,
+    Clothing            = 4,
 };
 
 // ─────────────────────────────────────────────
-//  Reward types — add new ones here as needed
+//  Reward types 
 // ─────────────────────────────────────────────
 enum class RewardType : uint32_t
 {
@@ -45,6 +44,7 @@ enum class RewardType : uint32_t
     LevelUp         = 2,
     BatteryRefill   = 3,
     TimeChunk       = 4,  // Now unified - mode determined at runtime
+    Clothing        = 5,
 };
 // ─────────────────────────────────────────────
 //  Reward descriptor
@@ -96,6 +96,8 @@ public:
     static void RegisterCheckRange(CheckType type, uint32_t idMin, uint32_t idMax);
     static void CompleteCheck(CheckType type, uint32_t id);
     static void OnCheckCompleted(CheckCallback callback);
+
+    static int GetSetItemCount();
 
     static int  GetTotalChecks();
     static int  GetCompletedChecks();
