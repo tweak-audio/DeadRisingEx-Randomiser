@@ -14,6 +14,11 @@ TO IMPROVE:
 - Clean up testing code when releasing!!!!!!
 
 Ideas:
+
+- Lock areas and add "Key" as a reward
+    - will make it harder to access all checks
+    - will need to update check availability with locations
+
 - hook items
     - add to checks
 -randomise maintanance key? other blue items?
@@ -22,14 +27,16 @@ Ideas:
 - Checks for survivors escorted back
 - Checks for killing psychopaths
 
-- add check for save file 
-    - maybe make it only work on 1 save file 
-
 - Completing survivor scoop check?
 
 - Randomise survivor spawn times???
     - &/psychopath??
 
+- Negative rewards?
+    - Make frank vomit?
+    - temporarily reduce speed?
+    - Cult kidnap frank?
+    - Spawn zombies
 
 
 DONE:
