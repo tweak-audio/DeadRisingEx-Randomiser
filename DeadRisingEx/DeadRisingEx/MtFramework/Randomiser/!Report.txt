@@ -1,8 +1,8 @@
 TODO:
 - hook cases
     - add to checks
-- hook clothing
-    - add to checks
+
+- FULL TEST
 
 - transform into archipelago
 
@@ -11,6 +11,7 @@ TO IMPROVE:
     - fix creating new seed evertime game loads
 
 - Clean up debug code
+- Clean up testing code when releasing!!!!!!
 
 Ideas:
 - hook items
@@ -51,3 +52,11 @@ DONE:
 - refill camera as reward (done)
 
 - create custom text popups using the pp gained popup (had to work around this, seems imposible to write custom text to existing system)
+
+- hook clothing (DONE)
+    - add to checks
+
+
+
+
+

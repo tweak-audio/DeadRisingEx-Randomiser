@@ -111,7 +111,7 @@ void HandleDebugInput()
     
     if (GetAsyncKeyState('1') & 1)
     {
-        GiveNextClothingReward();
+        
     }
 
     if (GetAsyncKeyState('2') & 1)
