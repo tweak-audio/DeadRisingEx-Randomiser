@@ -1,4 +1,5 @@
 
+
 #pragma once
 
 #include <Windows.h>
@@ -23,19 +24,18 @@ void Write(uint8_t* base, int offset, T value)
 // Public API
 void GrantLevels(int count);
 void GrantLevelViaXP(int count);
-void ForceLevelUp();
-void HandleDebugInput();
 void PrintPlayerStats();
-bool TryResolveStatsObject();
-extern void* g_statsObject;
 void ProcessPendingRewards();
 
-// Hook functions — needed by uPlayerImpl.cpp for DetourAttach
+extern void* g_statsObject;
+extern bool  g_statsResolved;
+
+// Hook functions
 void __fastcall Hook_SetPlayerLevel(void* playerObj, int level);
 void __fastcall Hook_LevelUpCallback(void* param_1);
 int  __fastcall Hook_XPAccumulator(void* param_1, unsigned int param_2, int param_3, int param_4, int param_5);
 
-// Function pointers — extern so uPlayerImpl.cpp can use them in DetourAttach
+// Function pointers
 extern void(__fastcall* SetPlayerLevel)(void* playerObj, int level);
 
 typedef void(__fastcall* LevelUpCallback_t)(void* param_1);

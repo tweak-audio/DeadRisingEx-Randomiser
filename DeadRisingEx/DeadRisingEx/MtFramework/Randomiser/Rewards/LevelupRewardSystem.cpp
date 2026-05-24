@@ -1,11 +1,9 @@
 #include "LevelUpRewardSystem.h"
-#include "RewardNotif.h"
 #include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 
 #include "detours.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
-#include "MtFramework/Game/sMain.h"
 #include <stdio.h>
 #include <Windows.h>
 #include <vector>
@@ -14,13 +12,12 @@
 //  Globals
 // ─────────────────────────────────────────────
 
-void* g_statsObject        = nullptr;
-bool  g_statsResolved      = false;
-bool  g_blockLevelUps      = true;
-bool  g_forcingLevelUp     = false;
-bool  g_primedFromCallback = false;
+void* g_statsObject    = nullptr;
+bool  g_statsResolved  = false;
+bool  g_blockLevelUps  = true;
+bool  g_forcingLevelUp = false;
 
-static std::vector<int> s_pendingRewards;  // ← ADD THIS
+static std::vector<int> s_pendingRewards;
 
 // ─────────────────────────────────────────────
 //  Function pointers
@@ -95,46 +92,6 @@ static const int XP_THRESHOLDS[MAX_LEVEL + 1] =
 };
 
 // ─────────────────────────────────────────────
-//  Stats object resolution
-// ─────────────────────────────────────────────
-
-bool TryResolveStatsObject()
-{
-    if (g_statsResolved) return true;
-    if (!uPlayerInstance) return false;
-
-    __try
-    {
-        for (int offset = 0; offset < 0x300; offset += 8)
-        {
-            void* candidate = *(void**)((uint8_t*)uPlayerInstance + offset);
-
-            if ((uintptr_t)candidate < 0x10000 ||
-                (uintptr_t)candidate > 0x7FFFFFFFFFFF)
-                continue;
-
-            int val = *(int*)((uint8_t*)candidate + LEVEL_OFFSET);
-
-            if (val >= 1 && val <= MAX_LEVEL)
-            {
-                g_statsObject   = candidate;
-                g_statsResolved = true;
-
-                char buf[128];
-                sprintf_s(buf, sizeof(buf),
-                    "[HOOK] Stats resolved from player: offset=0x%X level=%d ptr=%p",
-                    offset, val, g_statsObject);
-                LogLine(buf);
-                return true;
-            }
-        }
-    }
-    __except(EXCEPTION_EXECUTE_HANDLER) {}
-
-    return false;
-}
-
-// ─────────────────────────────────────────────
 //  Hook — SetPlayerLevel
 // ─────────────────────────────────────────────
 
@@ -158,19 +115,23 @@ void __fastcall Hook_SetPlayerLevel(void* playerObj, int level)
 
 void ProcessPendingRewards()
 {
-    if (s_pendingRewards.empty() || !g_statsResolved)
+    static bool s_processing = false;
+    if (s_processing || s_pendingRewards.empty() || !g_statsResolved)
         return;
-    
+
+    s_processing = true;
+
     char buf[64];
     sprintf_s(buf, "[LEVEL] Processing %d pending rewards", (int)s_pendingRewards.size());
     LogLine(buf);
-    
-    for (int count : s_pendingRewards)
-    {
-        GrantLevelViaXP(count);
-    }
-    
+
+    std::vector<int> toProcess = s_pendingRewards;
     s_pendingRewards.clear();
+
+    for (int count : toProcess)
+        GrantLevelViaXP(count);
+
+    s_processing = false;
 }
 
 // ─────────────────────────────────────────────
@@ -190,15 +151,11 @@ int __fastcall Hook_XPAccumulator(void* param_1, unsigned int param_2, int param
         char buf[128];
         sprintf_s(buf, sizeof(buf), "[HOOK] Stats resolved via XP accumulator: %p", param_1);
         LogLine(buf);
-        
-        // Process any rewards that were queued before stats were ready
-        ProcessPendingRewards(); 
     }
 
     uint8_t* base   = (uint8_t*)param_1;
     int levelBefore = Read<int>(base, LEVEL_OFFSET);
 
-    // Block natural XP level ups unless we are forcing one
     if (g_blockLevelUps && !g_forcingLevelUp &&
         levelBefore >= 1 && levelBefore < MAX_LEVEL)
     {
@@ -221,6 +178,8 @@ int __fastcall Hook_XPAccumulator(void* param_1, unsigned int param_2, int param
         LogLine(buf);
     }
 
+    ProcessPendingRewards();
+
     return result;
 }
 
@@ -230,26 +189,19 @@ int __fastcall Hook_XPAccumulator(void* param_1, unsigned int param_2, int param
 
 void __fastcall Hook_LevelUpCallback(void* param_1)
 {
-    if (param_1 != nullptr && !g_primedFromCallback)
+    if (param_1 != nullptr && !g_statsResolved)
     {
-        g_statsObject        = param_1;
-        g_statsResolved      = true;
-        g_primedFromCallback = true;
+        g_statsObject   = param_1;
+        g_statsResolved = true;
 
         char buf[128];
         sprintf_s(buf, sizeof(buf), "[HOOK] Stats captured via callback: %p", param_1);
         LogLine(buf);
-        
-        // Enable fast_frank on first stats capture
-        uPlayerImpl::SetFastFrank(true);
 
+        uPlayerImpl::SetFastFrank(true);
         originalLevelUpCallback(param_1);
-        
-        // Apply fast frank AFTER callback, passing the stats object
         uPlayerImpl::ApplyFastFrank(param_1);
-        
-        // Process pending rewards after first callback
-        ProcessPendingRewards();  // ← ADD THIS TOO
+        ProcessPendingRewards();
         return;
     }
 
@@ -260,8 +212,6 @@ void __fastcall Hook_LevelUpCallback(void* param_1)
     }
 
     originalLevelUpCallback(param_1);
-    
-    // Apply fast frank after level up, passing param_1 as stats object
     uPlayerImpl::ApplyFastFrank(param_1);
 }
 
@@ -287,43 +237,7 @@ void PrintPlayerStats()
 }
 
 // ─────────────────────────────────────────────
-//  ForceLevelUp — debug only, uses SetPlayerLevel
-// ─────────────────────────────────────────────
-
-void ForceLevelUp()
-{
-    if (!g_statsResolved)
-    {
-        LogLine("[ERROR] Stats not resolved");
-        return;
-    }
-
-    uint8_t* base = (uint8_t*)g_statsObject;
-    int current   = Read<int>(base, LEVEL_OFFSET);
-
-    if (current < 1 || current >= MAX_LEVEL)
-    {
-        LogLine("[ERROR] Level sanity check failed");
-        return;
-    }
-
-    char buf[128];
-    sprintf_s(buf, sizeof(buf), "[DEBUG] ForceLevelUp: %d -> %d", current, current + 1);
-    LogLine(buf);
-
-    g_forcingLevelUp = true;
-    g_blockLevelUps  = false;
-    SetPlayerLevel(g_statsObject, current + 1);
-    g_blockLevelUps  = true;
-    g_forcingLevelUp = false;
-
-    int after = Read<int>(base, LEVEL_OFFSET);
-    sprintf_s(buf, sizeof(buf), "[DEBUG] ForceLevelUp after: level=%d", after);
-    LogLine(buf);
-}
-
-// ─────────────────────────────────────────────
-//  GrantLevelViaXP — natural level up via XP injection
+//  GrantLevelViaXP
 // ─────────────────────────────────────────────
 
 void GrantLevelViaXP(int count)
@@ -344,7 +258,6 @@ void GrantLevelViaXP(int count)
         return;
     }
 
-    // FIX: Make sure we don't go out of bounds on the threshold array
     if (current >= MAX_LEVEL - 1)
     {
         LogLine("[WARNING] At or near max level, cannot grant more levels");
@@ -352,7 +265,7 @@ void GrantLevelViaXP(int count)
     }
 
     int currentXP = Read<int>(base, XP_OFFSET);
-    int threshold = XP_THRESHOLDS[current + 1];  // threshold TO REACH next level
+    int threshold = XP_THRESHOLDS[current + 1];
     int xpNeeded  = (threshold - currentXP) + 1;
 
     if (xpNeeded <= 0)
@@ -374,13 +287,12 @@ void GrantLevelViaXP(int count)
     sprintf_s(buf, "[LEVEL] Level after XP injection: %d", after);
     LogLine(buf);
 
-    // Recurse for remaining levels
-    if (count > 1 && after < target && after > current)  // ← Add check that level actually increased
+    if (count > 1 && after < target && after > current)
         GrantLevelViaXP(count - 1);
 }
 
 // ─────────────────────────────────────────────
-//  GrantLevels — public API used by CheckSystem
+//  GrantLevels — public API
 // ─────────────────────────────────────────────
 
 void GrantLevels(int count)
@@ -393,6 +305,6 @@ void GrantLevels(int count)
         s_pendingRewards.push_back(count);
         return;
     }
-    
+
     GrantLevelViaXP(count);
 }
