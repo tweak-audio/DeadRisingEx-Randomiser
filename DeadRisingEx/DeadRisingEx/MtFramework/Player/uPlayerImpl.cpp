@@ -8,6 +8,7 @@
 #include "MtFramework/Game/sMain.h"
 
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/LevelUpRewardSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/ClothingRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/ClothingCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/FastFrank.h"
@@ -66,10 +67,16 @@ void* __stdcall Hook_uPlayer_ctor(void* thisptr)
 {
     uPlayerInstance = thisptr;
     void* result = uPlayer_ctor(thisptr);
+
+    //Apply Fast Frank
     FastFrank::OnPlayerConstruct(thisptr);
 
     //Initialise costume statew machine obj
     ClothingCheck::SetStateMachineObj(thisptr);
+
+    //Randomise starting outfit
+    if (RANDOMISE_STARTING_OUTFIT)
+        ApplyRandomStartingOutfit();
     
     char buf[128];
     sprintf_s(buf, "[HOOK] uPlayer constructed at %p", uPlayerInstance);

@@ -206,3 +206,41 @@ ClothingRewardResult GiveNextClothingReward()
     g_nextSlot++;
     return { entry.slot * 100 + entry.id, entry.name };
 }
+
+void ApplyRandomStartingOutfit()
+{
+    uint32_t seed = CheckSystem::GetSeed();
+    if (seed == 0) return;
+
+    // Separate RNG offset from reward slots
+    RngSeed(seed ^ 0xF0FFFFFF);
+
+    // Build per-slot lists from the pool
+    // Slot indices: 0=outfit, 1=shoes, 2=glasses/hat, 3=accessory
+    std::vector<uint8_t> slotIds[6];
+    for (int i = 0; i < COSTUME_POOL_SIZE; i++)
+        slotIds[g_costumePool[i].slot].push_back(g_costumePool[i].id);
+
+    for (int slot = 0; slot < 6; slot++)
+    {
+        if (slotIds[slot].empty()) continue;
+
+        // +1 to include "no change" as an option (index 0 = no change)
+        int pick = RngRange(0, (int)slotIds[slot].size() + 1);
+
+        if (pick == 0)
+        {
+            char buf[64];
+            sprintf_s(buf, "[OUTFIT] Slot %d: no change", slot);
+            LogLine(buf);
+            continue;
+        }
+
+        uint8_t id = slotIds[slot][pick - 1];
+        ClothingReward::GiveCostume((uint8_t)slot, id);
+
+        char buf[64];
+        sprintf_s(buf, "[OUTFIT] Slot %d: id=%d", slot, id);
+        LogLine(buf);
+    }
+}
