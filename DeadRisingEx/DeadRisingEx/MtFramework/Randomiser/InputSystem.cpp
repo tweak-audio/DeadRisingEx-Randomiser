@@ -94,8 +94,6 @@ static void HandleSeedEntry()
 
 void HandleDebugInput()
 {
-    if (!g_statsResolved)
-        TryResolveStatsObject();
 
     // Enforce time gating every frame
     TimeChunkReward::EnforceTimeGate();
