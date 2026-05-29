@@ -10,6 +10,7 @@
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/LevelUpRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/ClothingRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/ClothingCheck.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/CaseCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/FastFrank.h"
 
@@ -61,6 +62,8 @@ void __fastcall Hook_GameStateTick(void* gameStateManager)
     }
     
     Original_GameStateTick(gameStateManager);
+    //CaseCheck, not quite working yet
+    //CaseCheck::OnGameStateTick();
 }
 
 void* __stdcall Hook_uPlayer_ctor(void* thisptr)
@@ -71,7 +74,7 @@ void* __stdcall Hook_uPlayer_ctor(void* thisptr)
     //Apply Fast Frank
     FastFrank::OnPlayerConstruct(thisptr);
 
-    //Initialise costume statew machine obj
+    //Initialise costume statew# machine obj
     ClothingCheck::SetStateMachineObj(thisptr);
 
     //Randomise starting outfit
@@ -108,6 +111,7 @@ void uPlayerImpl::RegisterTypeInfo()
     DetourAttach((void**)&originalXPAccumulator, Hook_XPAccumulator);
     DetourAttach((void**)&originalLevelUpCallback, Hook_LevelUpCallback);
     ClothingCheck::InitializeHooks();
+    
     
     // Hook game state tick to capture the game state manager
     Original_GameStateTick = (GameStateTickFunc)GetModuleAddress(0x140204350);

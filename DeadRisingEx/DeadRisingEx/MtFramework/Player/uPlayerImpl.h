@@ -8,6 +8,7 @@
 
 extern void **g_sUnitInstance;
 extern void *uPlayerInstance;
+extern void* g_RealGameStateManager;
 
 class uPlayerImpl
 {

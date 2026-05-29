@@ -57,6 +57,7 @@
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\Checks\PhotoProcessHook.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\Checks\PsychopathPhotoCheck.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\Checks\ClothingCheck.cpp" />
+    <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\Checks\CaseCheck.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\Rewards\LevelUpRewardSystem.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\Rewards\SetItemRewardSystem.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\Rewards\CameraRefillReward.cpp" />
@@ -112,6 +113,7 @@
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\Checks\PhotoProcessHook.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\Checks\PsychopathPhotoCheck.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\Checks\ClothingCheck.h" />
+    <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\Checks\CaseCheck.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\Rewards\LevelUpRewardSystem.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\Rewards\SetItemRewardSystem.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\Rewards\CameraRefillReward.h" />

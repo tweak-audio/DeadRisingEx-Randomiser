@@ -4,7 +4,6 @@
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include <cstdint>
 
-// Confirmed from reverse engineering in Ghidra:
 // Static base: DeadRising.exe + 0x1CF2AA0 (DAT_141cf2aa0)
 // First pointer: [base + 0x20DC0] -> Player Object
 // Second offset: [player + 0x9340] -> Camera Battery (int32)
