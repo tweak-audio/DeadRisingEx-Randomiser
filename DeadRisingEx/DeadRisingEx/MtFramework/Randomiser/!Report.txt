@@ -1,14 +1,20 @@
 TODO:
+- add randomiser_config.file read system
+    - add toggles to randomiser options
+        - ranges of intensities???
+    -
+
 - hook cases
     - add to checks
+    - (Is way harder than expected)
 
 - FULL TEST
 
-- transform into archipelago
+- transform into archipelago(?)
 
 TO IMPROVE:
 - check if seed exists and seed generation seem to be the wrong way round
-    - fix creating new seed evertime game loads
+    - fix creating new seed everytime game loads
 
 - Clean up debug code
 - Clean up testing code when releasing!!!!!!
