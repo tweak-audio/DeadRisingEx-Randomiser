@@ -21,7 +21,9 @@ TO IMPROVE:
 
 Ideas:
 
-- Lock areas and add "Key" as a reward
+- Lock areas and add "Key" as a reward 
+        - Way harder than expected..! piggy backing off the load_area console command currently
+        - needs full test with all loading zones
     - will make it harder to access all checks
     - will need to update check availability with locations
 

@@ -40,6 +40,8 @@
 
 #include "DeadRisingEx/MtFramework/Randomiser/TimeManager.h"
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/AreaKeySystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/AreaTransitionHook.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/CheckSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/PPStickerCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/SurvivorPhotoCheck.h"
@@ -248,6 +250,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
         CheckSystem::Initialize(); 
         TimeManager::Initialize();
+
+        AreaKeySystem::Get().Init(0);
+        AreaTransitionHook::Install();    
         // Initialize notification hook system (for displaying rewards)
         InitializeRewardNotifications();
 

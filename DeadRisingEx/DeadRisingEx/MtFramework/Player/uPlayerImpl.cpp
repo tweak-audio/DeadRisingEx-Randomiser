@@ -92,7 +92,7 @@ void __fastcall Hook_DeathTrigger(void* player, void* attacker)
 {
     char buf[256];
     sprintf_s(buf, "[DEATH] Triggered - player=%p, attacker=%p", player, attacker);
-    LogLine(buf);
+    //LogLine(buf);
     
     TriggerDeath(player, attacker);
     

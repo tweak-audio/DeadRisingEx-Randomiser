@@ -1,5 +1,6 @@
 
 #include "InputSystem.h"
+#include "AreaKeySystem.h"
 #include "TimeManager.h"
 #include "Checks/CheckSystem.h"
 #include "Rewards/LevelUpRewardSystem.h"
@@ -111,12 +112,12 @@ void HandleDebugInput()
     
     if (GetAsyncKeyState('1') & 1)
     {
-        
+        AreaKeySystem::Get().GiveKey(ZoneID::ParadisePlaza);
     }
 
     if (GetAsyncKeyState('2') & 1)
     {
-
+        AreaKeySystem::Get().GiveKey(ZoneID::WonderlandPlaza);
     }
 
     if (GetAsyncKeyState('3') & 1)
