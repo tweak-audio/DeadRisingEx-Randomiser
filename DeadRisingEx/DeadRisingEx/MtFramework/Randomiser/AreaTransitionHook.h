@@ -8,9 +8,7 @@ public:
     static void Install();
 
 private:
-    using FnAreaHitProcess = void(__fastcall*)(int64_t, uint16_t, int16_t, uint32_t);
-    static FnAreaHitProcess s_originalAreaHitProcess;
-    static void __fastcall Hook_AreaHitProcess(int64_t param_1, uint16_t param_2, int16_t param_3, uint32_t param_4);
+    // FUN_14008fb70 (AreaHitProcess) not hooked — see Install() comment.
 
     using FnTransitionStart = void(__fastcall*)(int64_t);
     static FnTransitionStart s_originalTransitionStart;

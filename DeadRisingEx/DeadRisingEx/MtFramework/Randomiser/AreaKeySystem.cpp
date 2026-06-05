@@ -44,6 +44,77 @@ ZoneID AreaKeySystem::ZoneFromAreaId(uint32_t id)
     }
 }
 
+uint32_t AreaKeySystem::GetBlockFallback(uint32_t from, uint32_t to)
+{
+    // Explicit transition map: when zone `to` is locked and Frank came from `from`,
+    // reload `fallback`. All entries currently map fallback = from (Frank returns
+    // where he came from). Tune individual entries here without touching hook code.
+    struct Entry { uint32_t from, to, fallback; };
+    static const Entry kTable[] =
+    {
+        // ── Paradise Plaza (0x200) ───────────────────────────
+        { 0x200, 0x700, 0x200 },  // PP → LP
+        { 0x200, 0x100, 0x200 },  // PP → EP
+        { 0x200, 0x503, 0x200 },  // PP → Movieland
+
+        // ── Leisure Park (0x700) ─────────────────────────────
+        { 0x700, 0x200, 0x700 },  // LP → PP
+        { 0x700, 0x600, 0x700 },  // LP → MT
+        { 0x700, 0x400, 0x700 },  // LP → NP
+        { 0xa00, 0x700, 0xa00 },  // FC → LP  (FC side)
+        // LP → FC: FC is 0xa00, entered from LP
+        { 0x700, 0xa00, 0x700 },  // LP → FC
+
+        // ── Entrance Plaza (0x100) ───────────────────────────
+        { 0x100, 0x200, 0x100 },  // EP → PP
+        { 0x100, 0x900, 0x100 },  // EP → AFP
+
+        // ── Al Fresca Plaza (0x900) ──────────────────────────
+        { 0x900, 0x100, 0x900 },  // AFP → EP
+        { 0x900, 0xa00, 0x900 },  // AFP → FC
+        { 0x900, 0x600, 0x900 },  // AFP → MT
+
+        // ── Food Court (0xa00) ───────────────────────────────
+        { 0xa00, 0x900, 0xa00 },  // FC → AFP
+        { 0xa00, 0x300, 0xa00 },  // FC → WP
+
+        // ── Wonderland Plaza (0x300) ─────────────────────────
+        { 0x300, 0xa00, 0x300 },  // WP → FC
+        { 0x300, 0x400, 0x300 },  // WP → NP
+        { 0x300, 0x600, 0x300 },  // WP → MT
+
+        // ── North Plaza (0x400) ──────────────────────────────
+        { 0x400, 0x300, 0x400 },  // NP → WP
+        { 0x400, 0x700, 0x400 },  // NP → LP
+        { 0x400, 0x501, 0x400 },  // NP → Crislip's
+        { 0x400, 0x500, 0x400 },  // NP → Seon's
+
+        // ── Maintenance Tunnel (0x600) — many entry points ───
+        { 0x600, 0x700, 0x600 },  // MT → LP
+        { 0x600, 0x100, 0x600 },  // MT → EP
+        { 0x600, 0x200, 0x600 },  // MT → PP
+        { 0x600, 0x300, 0x600 },  // MT → WP
+        { 0x600, 0xa00, 0x600 },  // MT → FC
+        { 0x600, 0x900, 0x600 },  // MT → AFP
+        { 0x600, 0x500, 0x600 },  // MT → Seon's
+        { 0x600, 0x400, 0x600 },  // MT → NP
+
+        // ── Crislip's (0x501) / Seon's Food (0x500) ─────────
+        { 0x501, 0x400, 0x501 },  // Crislip's → NP
+        { 0x500, 0x400, 0x500 },  // Seon's → NP
+        { 0x500, 0x600, 0x500 },  // Seon's → MT
+
+        // ── Colby's Movieland (0x503) ────────────────────────
+        { 0x503, 0x200, 0x503 },  // Movieland → PP
+    };
+
+    for (const auto& e : kTable)
+        if (e.from == from && e.to == to)
+            return e.fallback;
+
+    return from;  // unlisted transition: default to source area
+}
+
 void AreaKeySystem::Init(uint32_t seed)
 {
     memset(m_hasKey, 0, sizeof(m_hasKey));

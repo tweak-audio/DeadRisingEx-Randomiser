@@ -36,6 +36,7 @@ public:
     void OnCheckCompleted(DWORD checkId);
 
     static ZoneID ZoneFromAreaId(uint32_t rawAreaId);
+    static uint32_t GetBlockFallback(uint32_t sourceAreaId, uint32_t lockedAreaId);
 
     void SetIntroComplete(bool complete);
     bool IsIntroComplete() const;
