@@ -33,7 +33,7 @@ ZoneID AreaKeySystem::ZoneFromAreaId(uint32_t id)
     case 0x503: return ZoneID::ColbysMovieland;
     case 0x700: return ZoneID::LeisurePark;
     case 0x600: return ZoneID::MaintenanceTunnel;
-    case 0x601: return ZoneID::MeatProcessing;
+    case 0x601: return ZoneID::MeatProcessing;  // 0x601
     case 0x400: return ZoneID::NorthPlaza;
     case 0x501: return ZoneID::CrislipsHomeSaloon;
     case 0x500: return ZoneID::SeonsFood;
@@ -98,6 +98,10 @@ uint32_t AreaKeySystem::GetBlockFallback(uint32_t from, uint32_t to)
         { 0x600, 0x900, 0x600 },  // MT → AFP
         { 0x600, 0x500, 0x600 },  // MT → Seon's
         { 0x600, 0x400, 0x600 },  // MT → NP
+        { 0x600, 0x601, 0x600 },  // MT → Meat Processing
+
+        // ── Meat Processing (0x601) ──────────────────────────
+        { 0x601, 0x600, 0x601 },  // Meat Processing → MT (fallback: stay in Meat Processing)
 
         // ── Crislip's (0x501) / Seon's Food (0x500) ─────────
         { 0x501, 0x400, 0x501 },  // Crislip's → NP
@@ -113,6 +117,26 @@ uint32_t AreaKeySystem::GetBlockFallback(uint32_t from, uint32_t to)
             return e.fallback;
 
     return from;  // unlisted transition: default to source area
+}
+
+const char* AreaKeySystem::GetZoneName(ZoneID zone)
+{
+    switch (zone)
+    {
+    case ZoneID::EntrancePlaza:     return "Entrance Plaza";
+    case ZoneID::ParadisePlaza:     return "Paradise Plaza";
+    case ZoneID::ColbysMovieland:   return "Colby's Movieland";
+    case ZoneID::LeisurePark:       return "Leisure Park";
+    case ZoneID::MaintenanceTunnel: return "Maintenance Tunnel";
+    case ZoneID::MeatProcessing:    return "Meat Processing";
+    case ZoneID::NorthPlaza:        return "North Plaza";
+    case ZoneID::CrislipsHomeSaloon:return "Crislip's Home Saloon";
+    case ZoneID::SeonsFood:         return "Seon's Food & Stuff";
+    case ZoneID::WonderlandPlaza:   return "Wonderland Plaza";
+    case ZoneID::FoodCourt:         return "Food Court";
+    case ZoneID::AlFrescaPlaza:     return "Al Fresca Plaza";
+    default:                        return "Unknown Zone";
+    }
 }
 
 void AreaKeySystem::Init(uint32_t seed)

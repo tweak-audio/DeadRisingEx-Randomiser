@@ -1,4 +1,5 @@
 #include "RewardNotif.h"
+#include "DeadRisingEx/MtFramework/Randomiser/AreaKeySystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include "DeadRisingEx/MtFramework/Rendering/ImGui/ImGuiRenderer.h"
@@ -58,6 +59,13 @@ static const char* GetRewardText(RewardType type, const char* rewardName, int va
             else
                 return "ITEM UNLOCKED!";
             return s_buf;
+
+        case RewardType::AreaKey:
+        {
+            const char* zoneName = AreaKeySystem::GetZoneName(static_cast<ZoneID>(value));
+            sprintf_s(s_buf, sizeof(s_buf), "AREA UNLOCKED: %s!", zoneName);
+            return s_buf;
+        }
 
         default:
             return "REWARD!";

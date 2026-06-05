@@ -457,7 +457,8 @@ void ImGuiRenderer::BeginFrame()
     // Update display size and time delta.
     io.DisplaySize = ImVec2((float)windowSize.cx, (float)windowSize.cy);
     io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-    io.DeltaTime = sMain::Instance()->GameTime.DeltaTime1InSeconds;
+    if (sMain::Instance())
+        io.DeltaTime = sMain::Instance()->GameTime.DeltaTime1InSeconds;
 
     // Start a new imgui frame.
     ImGui::NewFrame();

@@ -37,6 +37,7 @@ public:
 
     static ZoneID ZoneFromAreaId(uint32_t rawAreaId);
     static uint32_t GetBlockFallback(uint32_t sourceAreaId, uint32_t lockedAreaId);
+    static const char* GetZoneName(ZoneID zone);
 
     void SetIntroComplete(bool complete);
     bool IsIntroComplete() const;

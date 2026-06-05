@@ -246,7 +246,12 @@ BOOL APIENTRY DllMain(HMODULE hModule,
                         ShowRewardNotification(RewardType::Clothing, result.name, 0);
                         break;
                     }
-                    
+
+                case RewardType::AreaKey:
+                    AreaKeySystem::Get().GiveKey(static_cast<ZoneID>(reward.value));
+                    ShowRewardNotification(RewardType::AreaKey, nullptr, reward.value);
+                    break;
+
                 case RewardType::None:
                 default:
                     break;
