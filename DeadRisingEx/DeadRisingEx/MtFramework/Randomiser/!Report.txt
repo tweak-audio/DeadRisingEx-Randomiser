@@ -8,9 +8,17 @@ TODO:
     - add to checks
     - (Is way harder than expected)
 
+- Lock areas and add "Key" as a reward 
+        - Way harder than expected..! piggy backing off the load_area console command currently
+        - needs full test with all loading zones
+    - will make it harder to access all checks
+    - will need to update check availability with locations
+
 - FULL TEST
 
 - transform into archipelago(?)
+- seperate randomiser mod from the original dll 
+    - add method for original dll to read code altering mods?
 
 TO IMPROVE:
 - check if seed exists and seed generation seem to be the wrong way round
@@ -21,14 +29,11 @@ TO IMPROVE:
 
 Ideas:
 
-- Lock areas and add "Key" as a reward 
-        - Way harder than expected..! piggy backing off the load_area console command currently
-        - needs full test with all loading zones
-    - will make it harder to access all checks
-    - will need to update check availability with locations
+- use games built in rng to affect randomiser seed generation????
 
 - hook items
     - add to checks
+
 -randomise maintanance key? other blue items?
 
 - Checks for survivors joined
@@ -45,6 +50,8 @@ Ideas:
     - temporarily reduce speed?
     - Cult kidnap frank?
     - Spawn zombies
+
+- Consuming each food check??
 
 
 DONE:
