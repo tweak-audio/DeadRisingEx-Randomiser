@@ -45,6 +45,7 @@
     <ClCompile Include="DeadRisingEx\MtFramework\MtObjectImpl.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Object\sUnitImpl.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Player\uPlayerImpl.cpp" />
+    <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\CrashHandler.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\FastFrank.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\InputSystem.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\TimeManager.cpp" />
@@ -104,6 +105,7 @@
     <ClInclude Include="DeadRisingEx\MtFramework\MtObjectImpl.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Object\sUnitImpl.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Player\uPlayerImpl.h" />
+    <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\CrashHandler.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\FastFrank.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\InputSystem.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\TimeManager.h" />

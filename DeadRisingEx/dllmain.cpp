@@ -38,6 +38,7 @@
 #include "DeadRisingEx/MtFramework/Object/Npc/uNpcMarkerImpl.h"
 #include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
 
+#include "DeadRisingEx/MtFramework/Randomiser/CrashHandler.h"
 #include "DeadRisingEx/MtFramework/Randomiser/TimeManager.h"
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/AreaKeySystem.h"
@@ -121,6 +122,7 @@ bool __declspec(dllexport) LaunchDeadRisingEx(const char *psGameDirectory)
     return true;
 }
 
+
 BOOL APIENTRY DllMain(HMODULE hModule,
                       DWORD  ul_reason_for_call,
                       LPVOID lpReserved)
@@ -129,6 +131,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH:
     {
+        InstallCrashHandler(hModule);
        
         CHAR sModulePath[MAX_PATH] = { 0 };
         CHAR sModuleName[32] = { 0 };
@@ -153,6 +156,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
         if (ModConfig::Instance()->DebugLog == true)
             DebugLog::Initialize();
+
+        InitRandomiserLog();
 
         MtObjectImpl::RegisterTypeInfo();
         sSnatcherToolImpl::RegisterTypeInfo();
