@@ -1,6 +1,8 @@
 
 #include "CrashHandler.h"
 #include <stdio.h>
+#include <imagehlp.h>
+#pragma comment(lib, "imagehlp")
 
 static HMODULE g_ourDllBase = nullptr;
 
@@ -45,6 +47,7 @@ static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep)
             (unsigned long long)ctx->Rbx, (unsigned long long)ctx->Rdi,
             (unsigned long long)ctx->Rsi);
 
+        // Raw stack words
         uintptr_t* rsp = (uintptr_t*)ctx->Rsp;
         fprintf(f, "[CRASH] RSP[0..7]:");
         for (int i = 0; i < 8; i++)
@@ -53,6 +56,23 @@ static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep)
             __except(EXCEPTION_EXECUTE_HANDLER) { break; }
         }
         fprintf(f, "\n");
+
+        // Stack walk — print return addresses with DLL/game RVA labels
+        fprintf(f, "[CRASH] Stack walk:\n");
+        void* frames[48] = {};
+        USHORT count = RtlCaptureStackBackTrace(0, 48, frames, NULL);
+        for (USHORT i = 0; i < count; i++)
+        {
+            uintptr_t addr    = (uintptr_t)frames[i];
+            uintptr_t gRva    = (addr >= gameBase && gameBase) ? (addr - gameBase + 0x140000000ULL) : 0;
+            uintptr_t dRva    = (addr >= dllBase  && dllBase)  ? (addr - dllBase) : 0;
+            if (dRva)
+                fprintf(f, "[CRASH]   [%2u] DLL+0x%llX\n", i, (unsigned long long)dRva);
+            else if (gRva)
+                fprintf(f, "[CRASH]   [%2u] GAME+0x%llX\n", i, (unsigned long long)(addr - gameBase));
+            else
+                fprintf(f, "[CRASH]   [%2u] 0x%llX\n", i, (unsigned long long)addr);
+        }
         fclose(f);
     }
     return EXCEPTION_CONTINUE_SEARCH;
