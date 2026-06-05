@@ -521,8 +521,7 @@ void __stdcall Hook_sAreaHit_SpawnItems(sAreaHit *thisptr)
                 cResource *pResource = sResource::Instance()->LoadGameResource<cResource>(rArchive::DebugTypeInfo, sItemPath.c_str(), RLF_SYNCHRONOUS | RLF_LOAD_AS_ARCHIVE);
                 if (pResource == nullptr)
                 {
-                    // Failed to force load resource.
-                    ImGuiConsole::Instance()->ConsolePrint(L"Failed to force load object '%S'!\n", sItemPath.c_str());
+                    DbgPrint("Randomizer: failed to load archive '%s'\n", sItemPath.c_str());
                     continue;
                 }
 
@@ -530,8 +529,12 @@ void __stdcall Hook_sAreaHit_SpawnItems(sAreaHit *thisptr)
                 snprintf(sItemClassName, sizeof(sItemClassName), "uOm%02x", itemFileId);
 
                 // Allocate memory for a class name string.
+                MtHeapAllocator* heapAlloc = g_pStringHeapAllocator ? *g_pStringHeapAllocator : nullptr;
+                if (heapAlloc == nullptr)
+                    continue;
+
                 DWORD stringLength = lstrlen(sItemClassName);
-                MtString *pClassName = (*g_pStringHeapAllocator)->Alloc<MtString>(sizeof(MtString) + stringLength + 1, 16);
+                MtString *pClassName = heapAlloc->Alloc<MtString>(sizeof(MtString) + stringLength + 1, 16);
                 if (pClassName != nullptr)
                 {
                     // Initialize the string.
@@ -541,7 +544,7 @@ void __stdcall Hook_sAreaHit_SpawnItems(sAreaHit *thisptr)
 
                     // Free the old string pointer.
                     if (*ppClassName != nullptr)
-                        (*g_pStringHeapAllocator)->Free(*ppClassName);
+                        heapAlloc->Free(*ppClassName);
 
                     // Re-assign the class name pointer.
                     *ppClassName = pClassName;
