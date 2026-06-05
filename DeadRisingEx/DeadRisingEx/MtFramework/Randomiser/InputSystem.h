@@ -4,3 +4,4 @@
 
 void HandleDebugInput();
 void LogLine(const char* text);
+void InitRandomiserLog();

@@ -17,11 +17,23 @@
 
 extern bool g_statsResolved;
 
+static HANDLE hRandomiserLog = INVALID_HANDLE_VALUE;
+
+void InitRandomiserLog()
+{
+    CHAR sLogFilePath[MAX_PATH] = { 0 };
+    snprintf(sLogFilePath, sizeof(sLogFilePath), "%s\\RandomiserDebug.txt", ModConfig::Instance()->GameDirectory);
+    hRandomiserLog = CreateFile(sLogFilePath, GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+}
+
 void LogLine(const char* text)
 {
-    // Write to file first, before ImGui may be available
-    if (ModConfig::Instance()->DebugLog)
-        DebugLog::WriteMessage(text);
+    if (hRandomiserLog != INVALID_HANDLE_VALUE)
+    {
+        DWORD bytesWritten = 0;
+        WriteFile(hRandomiserLog, text, lstrlenA(text), &bytesWritten, NULL);
+        FlushFileBuffers(hRandomiserLog);
+    }
 
     // Only call ImGui if it's ready
     if (ImGuiConsole::Instance() != nullptr)
@@ -112,32 +124,32 @@ void HandleDebugInput()
     
     if (GetAsyncKeyState('1') & 1)
     {
-        AreaKeySystem::Get().GiveKey(ZoneID::ParadisePlaza);
+        AreaKeySystem::Get().GiveKey(ZoneID::LeisurePark);
     }
 
     if (GetAsyncKeyState('2') & 1)
     {
-        AreaKeySystem::Get().GiveKey(ZoneID::WonderlandPlaza);
+        AreaKeySystem::Get().GiveKey(ZoneID::FoodCourt);
     }
 
     if (GetAsyncKeyState('3') & 1)
     {
-
+        AreaKeySystem::Get().GiveKey(ZoneID::NorthPlaza);
     }
 
     if (GetAsyncKeyState('4') & 1)
     {
-
+        AreaKeySystem::Get().GiveKey(ZoneID::WonderlandPlaza);
     }
     
     if (GetAsyncKeyState('5') & 1)
     {
-
+        AreaKeySystem::Get().GiveKey(ZoneID::MaintenanceTunnel);
     }
 
     if (GetAsyncKeyState('6') & 1)
     {
-
+        AreaKeySystem::Get().GiveKey(ZoneID::AlFrescaPlaza);
     }
 
     if (GetAsyncKeyState('7') & 1)
