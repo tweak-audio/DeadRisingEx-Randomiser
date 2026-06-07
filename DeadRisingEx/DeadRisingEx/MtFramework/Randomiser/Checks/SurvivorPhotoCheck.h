@@ -7,7 +7,7 @@ namespace SurvivorPhotoCheck
     void RegisterTypeInfo();
     void OnSurvivorPhotographed(uint32_t survivorId, int totalCollected, int totalSurvivors);
     bool IsKnownSurvivor(uint32_t survivorId);
-    void UpdateRuntimeMappings();
+    void OnAreaTransition();
     uint32_t GetSurvivorIdFromObject(void* npcObject);
     uint32_t GetSurvivorIdFromRuntimeId(uint32_t runtimeId);
     uint32_t GetSurvivorIdFromPhotoId(uint16_t photoId);

@@ -17,6 +17,12 @@ static PhotoAwardFunc_t s_OrigPhotoAward = nullptr;
 
 void __fastcall Hook_PhotoAward(void* param_1, uint16_t subjectId, int basePP, int multiplier)
 {
+    if (!CheckSystem::IsReady())
+    {
+        LogLine("[RANDOMIZER] ERROR: hook fired before init complete (hook_photoAward)");
+        s_OrigPhotoAward(param_1, subjectId, basePP, multiplier);
+        return;
+    }
     __try
     {
         //PhotoIDLogger::LogPhotoSubject(subjectId, basePP, multiplier);
@@ -24,7 +30,8 @@ void __fastcall Hook_PhotoAward(void* param_1, uint16_t subjectId, int basePP, i
         // Check if this is a PP sticker
         if (subjectId >= 0x80 && subjectId <= 0xE3)
         {
-            CheckSystem::CompleteCheck(CheckType::PPSticker, subjectId);
+            if (CheckSystem::IsReady())
+                CheckSystem::CompleteCheck(CheckType::PPSticker, subjectId);
         }
 
         // Check if this photo ID maps to a survivor OR psychopath
@@ -41,14 +48,16 @@ void __fastcall Hook_PhotoAward(void* param_1, uint16_t subjectId, int basePP, i
                     sprintf_s(buf, "[PHOTO AWARD] *** Psychopath PhotoID 0x%04X → PsychopathID 0x%X ***", 
                         subjectId, entityId);
                     LogLine(buf);
-                    CheckSystem::CompleteCheck(CheckType::PsychopathPhoto, entityId);
+                    if (CheckSystem::IsReady())
+                        CheckSystem::CompleteCheck(CheckType::PsychopathPhoto, entityId);
                 }
                 else if (entityId >= 0x4D0 && entityId <= 0x56C)
                 {
                     sprintf_s(buf, "[PHOTO AWARD] *** Survivor PhotoID 0x%04X → SurvivorID 0x%X ***", 
                         subjectId, entityId);
                     LogLine(buf);
-                    CheckSystem::CompleteCheck(CheckType::SurvivorPhoto, entityId);
+                    if (CheckSystem::IsReady())
+                        CheckSystem::CompleteCheck(CheckType::SurvivorPhoto, entityId);
                 }
             }
         }

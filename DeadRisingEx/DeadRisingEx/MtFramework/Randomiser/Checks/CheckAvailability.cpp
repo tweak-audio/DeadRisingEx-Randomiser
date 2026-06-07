@@ -9,6 +9,18 @@ This is so the randomizer can have logic
 
 std::unordered_map<CheckId, CheckAvailabilityInfo, CheckIdHash> CheckAvailability::s_availabilityDB;
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Shared table entry — used for PP stickers and clothing.
+//  notes format: "Name - Store/Location, Zone"
+//  GetCheckName() returns everything before the first " - ".
+// ─────────────────────────────────────────────────────────────────────────────
+struct LocationEntry
+{
+    uint32_t    checkId;
+    ZoneID      zone;
+    const char* notes;   // "Item Name - Store, Zone name"
+};
+
 void CheckAvailability::Initialize()
 {
     LogLine("[AVAILABILITY] Building check availability database...");
@@ -23,40 +35,126 @@ void CheckAvailability::Initialize()
     LogLine(buf);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  PP Sticker table
+//  ID range 128-227. IDs 224 and 227 are cult-hideout (handled separately).
+//  Fill in "Name - Store/location, Zone" and the correct ZoneID per sticker.
+// ─────────────────────────────────────────────────────────────────────────────
+static const LocationEntry kPPStickerDB[] =
+{
+    // id   zone                          notes
+    { 128,  ZoneID::ParadisePlaza,      "PP Sticker 128 - TODO" },
+    { 129,  ZoneID::FoodCourt,          "PP Sticker 129 - TODO" },
+    { 130,  ZoneID::ColbysMovieland,    "PP Sticker 130 - TODO" },
+    { 131,  ZoneID::ParadisePlaza,      "PP Sticker 131 - TODO" },
+    { 132,  ZoneID::SeonsFood,          "PP Sticker 132 - TODO" },
+    { 133,  ZoneID::NorthPlaza,         "PP Sticker 133 - TODO" },
+    { 134,  ZoneID::WonderlandPlaza,    "PP Sticker 134 - TODO" },
+    { 135,  ZoneID::WonderlandPlaza,    "PP Sticker 135 - TODO" },
+    { 136,  ZoneID::WonderlandPlaza,    "PP Sticker 136 - TODO" },
+    { 137,  ZoneID::AlFrescaPlaza,      "PP Sticker 137 - TODO" },
+    { 138,  ZoneID::AlFrescaPlaza,      "PP Sticker 138 - TODO" },
+    { 139,  ZoneID::AlFrescaPlaza,      "PP Sticker 139 - TODO" },
+    { 140,  ZoneID::FoodCourt,          "PP Sticker 140 - TODO" },
+    { 141,  ZoneID::FoodCourt,          "PP Sticker 141 - TODO" },
+    { 142,  ZoneID::FoodCourt,          "PP Sticker 142 - TODO" },
+    { 143,  ZoneID::ParadisePlaza,      "PP Sticker 143 - TODO" },
+    { 144,  ZoneID::ParadisePlaza,      "PP Sticker 144 - TODO" },
+    { 145,  ZoneID::ParadisePlaza,      "PP Sticker 145 - TODO" },
+    { 146,  ZoneID::FoodCourt,          "PP Sticker 146 - TODO" },
+    { 147,  ZoneID::FoodCourt,          "PP Sticker 147 - TODO" },
+    { 148,  ZoneID::FoodCourt,          "PP Sticker 148 - TODO" },
+    { 149,  ZoneID::FoodCourt,          "PP Sticker 149 - TODO" },
+    { 150,  ZoneID::WonderlandPlaza,    "PP Sticker 150 - TODO" },
+    { 151,  ZoneID::NorthPlaza,         "PP Sticker 151 - TODO" },
+    { 152,  ZoneID::NorthPlaza,         "PP Sticker 152 - TODO" },
+    { 153,  ZoneID::ParadisePlaza,      "PP Sticker 153 - TODO" },
+    { 154,  ZoneID::ParadisePlaza,      "PP Sticker 154 - TODO" },
+    { 155,  ZoneID::NorthPlaza,         "PP Sticker 155 - TODO" },
+    { 156,  ZoneID::NorthPlaza,         "PP Sticker 156 - TODO" },
+    { 157,  ZoneID::NorthPlaza,         "PP Sticker 157 - TODO" },
+    { 158,  ZoneID::NorthPlaza,         "PP Sticker 158 - TODO" },
+    { 159,  ZoneID::EntrancePlaza,      "PP Sticker 159 - TODO" },
+    { 160,  ZoneID::WonderlandPlaza,    "PP Sticker 160 - TODO" },
+    { 161,  ZoneID::LeisurePark,        "PP Sticker 161 - TODO" },
+    { 162,  ZoneID::ParadisePlaza,      "PP Sticker 162 - TODO" },
+    { 163,  ZoneID::ParadisePlaza,      "PP Sticker 163 - TODO" },
+    { 164,  ZoneID::ParadisePlaza,      "PP Sticker 164 - TODO" },
+    { 165,  ZoneID::COUNT,              "PP Sticker 165 - TODO" },
+    { 166,  ZoneID::EntrancePlaza,      "PP Sticker 166 - TODO" },
+    { 167,  ZoneID::ParadisePlaza,      "PP Sticker 167 - TODO" },
+    { 168,  ZoneID::ParadisePlaza,      "PP Sticker 168 - TODO" },
+    { 169,  ZoneID::EntrancePlaza,      "PP Sticker 169 - TODO" },
+    { 170,  ZoneID::EntrancePlaza,      "PP Sticker 170 - TODO" },
+    { 171,  ZoneID::EntrancePlaza,      "PP Sticker 171 - TODO" },
+    { 172,  ZoneID::EntrancePlaza,      "PP Sticker 172 - TODO" },
+    { 173,  ZoneID::WonderlandPlaza,    "PP Sticker 173 - TODO" },
+    { 174,  ZoneID::COUNT,            "PP Sticker 174 - TODO" },
+    { 175,  ZoneID::WonderlandPlaza,    "PP Sticker 175 - TODO" },
+    { 176,  ZoneID::WonderlandPlaza,    "PP Sticker 176 - TODO" },
+    { 177,  ZoneID::WonderlandPlaza,    "PP Sticker 177 - TODO" },
+    { 178,  ZoneID::WonderlandPlaza,    "PP Sticker 178 - TODO" },
+    { 179,  ZoneID::NorthPlaza,         "PP Sticker 179 - TODO" },
+    { 180,  ZoneID::NorthPlaza,         "PP Sticker 180 - TODO" },
+    { 181,  ZoneID::SeonsFood,          "PP Sticker 181 - TODO" },
+    { 182,  ZoneID::SeonsFood,          "PP Sticker 182 - TODO" },
+    { 183,  ZoneID::ParadisePlaza,      "PP Sticker 183 - TODO" },
+    { 184,  ZoneID::ParadisePlaza,      "PP Sticker 184 - TODO" },
+    { 185,  ZoneID::WonderlandPlaza,    "PP Sticker 185 - TODO" },
+    { 186,  ZoneID::WonderlandPlaza,    "PP Sticker 186 - TODO" },
+    { 187,  ZoneID::WonderlandPlaza,    "PP Sticker 187 - TODO" },
+    { 188,  ZoneID::WonderlandPlaza,    "PP Sticker 188 - TODO" },
+    { 189,  ZoneID::WonderlandPlaza,    "PP Sticker 189 - TODO" },
+    { 190,  ZoneID::EntrancePlaza,      "PP Sticker 190 - TODO" },
+    { 191,  ZoneID::EntrancePlaza,      "PP Sticker 191 - TODO" },
+    { 192,  ZoneID::CrislipsHomeSaloon, "PP Sticker 192 - TODO" },
+    { 193,  ZoneID::CrislipsHomeSaloon, "PP Sticker 193 - TODO" },
+    { 194,  ZoneID::ColbysMovieland,    "PP Sticker 194 - TODO" },
+    { 195,  ZoneID::ParadisePlaza,      "PP Sticker 195 - TODO" },
+    { 196,  ZoneID::ColbysMovieland,    "PP Sticker 196 - TODO" },
+    { 197,  ZoneID::ColbysMovieland,    "PP Sticker 197 - TODO" },
+    { 198,  ZoneID::ColbysMovieland,    "PP Sticker 198 - TODO" },
+    { 199,  ZoneID::ColbysMovieland,    "PP Sticker 199 - TODO" },
+    { 200,  ZoneID::ColbysMovieland,    "PP Sticker 200 - TODO" },
+    { 201,  ZoneID::ColbysMovieland,    "PP Sticker 201 - TODO" },
+    { 202,  ZoneID::MaintenanceTunnel,  "PP Sticker 202 - TODO" },
+    { 203,  ZoneID::MaintenanceTunnel,  "PP Sticker 203 - TODO" },
+    { 204,  ZoneID::MaintenanceTunnel,  "PP Sticker 204 - TODO" },
+    { 205,  ZoneID::MaintenanceTunnel,  "PP Sticker 205 - TODO" },
+    { 206,  ZoneID::MaintenanceTunnel,  "PP Sticker 206 - TODO" },
+    { 207,  ZoneID::MeatProcessing,     "PP Sticker 207 - TODO" },
+    { 208,  ZoneID::MeatProcessing,     "PP Sticker 208 - TODO" },
+    { 209,  ZoneID::LeisurePark,        "PP Sticker 209 - TODO" },
+    { 210,  ZoneID::LeisurePark,        "PP Sticker 210 - TODO" },
+    { 211,  ZoneID::LeisurePark,        "PP Sticker 211 - TODO" },
+    { 212,  ZoneID::AlFrescaPlaza,      "PP Sticker 212 - TODO" },
+    { 213,  ZoneID::AlFrescaPlaza,      "PP Sticker 213 - TODO" },
+    { 214,  ZoneID::AlFrescaPlaza,      "PP Sticker 214 - TODO" },
+    { 215,  ZoneID::AlFrescaPlaza,      "PP Sticker 215 - TODO" },
+    { 216,  ZoneID::AlFrescaPlaza,      "PP Sticker 216 - TODO" },
+    { 217,  ZoneID::AlFrescaPlaza,      "PP Sticker 217 - TODO" },
+    { 218,  ZoneID::AlFrescaPlaza,      "PP Sticker 218 - TODO" },
+    { 219,  ZoneID::AlFrescaPlaza,      "PP Sticker 219 - TODO" },
+    { 220,  ZoneID::FoodCourt,          "PP Sticker 220 - TODO" },
+    { 221,  ZoneID::FoodCourt,          "PP Sticker 221 - TODO" },
+    { 222,  ZoneID::FoodCourt,          "PP Sticker 222 - TODO" },
+    { 223,  ZoneID::EntrancePlaza,      "PP Sticker 223 - TODO" },
+    { 225,  ZoneID::EntrancePlaza,      "PP Sticker 225 - TODO" },
+    { 226,  ZoneID::COUNT,       "PP Sticker 226 - TODO" },
+};
+
 void CheckAvailability::RegisterPPStickerTimes()
 {
-    auto HoursAfterStart = [](int hours) {
-        return TimeManager::GAME_START_TICK + (hours * TimeManager::TICKS_PER_HOUR);
-    };
+    for (const auto& e : kPPStickerDB)
+        s_availabilityDB[{CheckType::PPSticker, e.checkId}] = {
+            TimeManager::GAME_START_TICK, false, e.zone, e.notes };
 
-    // PP Stickers — zone data not yet mapped per sticker, so COUNT (no key required).
-    // Update individual entries below once per-sticker zone data is known.
-    for (int i = 128; i <= 227; i++)
-    {
-        if (i == 224 || i == 227)
-            continue;
-
-        s_availabilityDB[{CheckType::PPSticker, (uint32_t)i}] = {
-            TimeManager::GAME_START_TICK,
-            false,
-            ZoneID::COUNT,
-            "PP Sticker"
-        };
-    }
-
-    // Cult Hideout Stickers (cultists spawn after 25 hours in-game)
+    // Cult Hideout stickers — time-gated (cultists spawn after 25 in-game hours)
+    uint32_t cultTime = TimeManager::GAME_START_TICK + (25 * TimeManager::TICKS_PER_HOUR);
     s_availabilityDB[{CheckType::PPSticker, 224}] = {
-        HoursAfterStart(25),
-        true,
-        ZoneID::COUNT,
-        "Cult Hideout - need cultists to spawn (25 hours)"
-    };
+        cultTime, true, ZoneID::COUNT, "Cult Hideout Sticker A - Cult Hideout" };
     s_availabilityDB[{CheckType::PPSticker, 227}] = {
-        HoursAfterStart(25),
-        true,
-        ZoneID::COUNT,
-        "Cult Hideout - need cultists to spawn (25 hours)"
-    };
+        cultTime, true, ZoneID::COUNT, "Cult Hideout Sticker B - Cult Hideout" };
 }
 
 void CheckAvailability::RegisterSurvivorTimes()
@@ -329,34 +427,94 @@ void CheckAvailability::RegisterPsychopathTimes()
         TimeOfDay(3, 5, 0, true), false, ZoneID::MeatProcessing, "Larry - Meat Processing" };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Clothing table
+//  checkId = slot * 100 + id  (matches ClothingCheck.cpp formula)
+//  Fill in "Costume Name - Store, Zone" and the correct ZoneID per item.
+//  Slot 0 = outfit, Slot 1 = shoes, Slot 2 = head, Slot 3 = accessory
+// ─────────────────────────────────────────────────────────────────────────────
+static const LocationEntry kClothingDB[] =
+{
+    // ── Slot 0 — Outfits (checkId = id) ─────────────────────────────────────
+    {   0,  ZoneID::COUNT,   "Outfit 0 - TODO"   },
+    {   1,  ZoneID::COUNT,   "Outfit 1 - TODO"   },
+    {   2,  ZoneID::COUNT,   "Outfit 2 - TODO"   },
+    {   3,  ZoneID::COUNT,   "Outfit 3 - TODO"   },
+    {   4,  ZoneID::COUNT,   "Outfit 4 - TODO"   },
+    {   5,  ZoneID::COUNT,   "Outfit 5 - TODO"   },
+    {   6,  ZoneID::COUNT,   "Outfit 6 - TODO"   },
+    {   7,  ZoneID::COUNT,   "Outfit 7 - TODO"   },
+    {   8,  ZoneID::COUNT,   "Outfit 8 - TODO"   },
+    {   9,  ZoneID::COUNT,   "Outfit 9 - TODO"   },
+    {  10,  ZoneID::COUNT,   "Outfit 10 - TODO"  },
+    {  11,  ZoneID::COUNT,   "Outfit 11 - TODO"  },
+    {  12,  ZoneID::COUNT,   "Outfit 12 - TODO"  },
+    {  13,  ZoneID::COUNT,   "Outfit 13 - TODO"  },
+    {  14,  ZoneID::COUNT,   "Outfit 14 - TODO"  },
+    {  15,  ZoneID::COUNT,   "Outfit 15 - TODO"  },
+    {  16,  ZoneID::COUNT,   "Outfit 16 - TODO"  },
+    {  17,  ZoneID::COUNT,   "Outfit 17 - TODO"  },
+    {  18,  ZoneID::COUNT,   "Outfit 18 - TODO"  },
+    {  19,  ZoneID::COUNT,   "Outfit 19 - TODO"  },
+    {  20,  ZoneID::COUNT,   "Outfit 20 - TODO"  },
+    {  21,  ZoneID::COUNT,   "Outfit 21 - TODO"  },
+    {  22,  ZoneID::COUNT,   "Outfit 22 - TODO"  },
+    {  23,  ZoneID::COUNT,   "Outfit 23 - TODO"  },
+    {  24,  ZoneID::COUNT,   "Outfit 24 - TODO"  },
+    {  25,  ZoneID::COUNT,   "Outfit 25 - TODO"  },
+    {  26,  ZoneID::COUNT,   "Outfit 26 - TODO"  },
+    {  28,  ZoneID::COUNT,   "Outfit 28 - TODO"  },
+    {  29,  ZoneID::COUNT,   "Outfit 29 - TODO"  },
+    {  30,  ZoneID::COUNT,   "Outfit 30 - TODO"  },
+    {  31,  ZoneID::COUNT,   "Outfit 31 - TODO"  },
+    {  32,  ZoneID::COUNT,   "Outfit 32 - TODO"  },
+    {  33,  ZoneID::COUNT,   "Outfit 33 - TODO"  },
+    {  38,  ZoneID::COUNT,   "Outfit 38 - TODO"  },
+    {  40,  ZoneID::COUNT,   "Outfit 40 - TODO"  },
+    {  41,  ZoneID::COUNT,   "Outfit 41 - TODO"  },
+    {  42,  ZoneID::COUNT,   "Outfit 42 - TODO"  },
+
+    // ── Slot 1 — Shoes (checkId = 100 + id) ─────────────────────────────────
+    { 100,  ZoneID::COUNT,   "Shoes 100 - TODO"  },
+    { 101,  ZoneID::COUNT,   "Shoes 101 - TODO"  },
+    { 102,  ZoneID::COUNT,   "Shoes 102 - TODO"  },
+    { 103,  ZoneID::COUNT,   "Shoes 103 - TODO"  },
+    { 104,  ZoneID::COUNT,   "Shoes 104 - TODO"  },
+    { 105,  ZoneID::COUNT,   "Shoes 105 - TODO"  },
+    { 106,  ZoneID::COUNT,   "Shoes 106 - TODO"  },
+    { 107,  ZoneID::COUNT,   "Shoes 107 - TODO"  },
+    { 108,  ZoneID::COUNT,   "Shoes 108 - TODO"  },
+    { 109,  ZoneID::COUNT,   "Shoes 109 - TODO"  },
+
+    // ── Slot 2 — Head (checkId = 200 + id) ──────────────────────────────────
+    { 202,  ZoneID::COUNT,   "Hat 202 - TODO"    },
+    { 203,  ZoneID::COUNT,   "Hat 203 - TODO"    },
+    { 204,  ZoneID::COUNT,   "Hat 204 - TODO"    },
+    { 205,  ZoneID::COUNT,   "Hat 205 - TODO"    },
+    { 207,  ZoneID::COUNT,   "Hat 207 - TODO"    },
+    { 208,  ZoneID::COUNT,   "Hat 208 - TODO"    },
+    { 209,  ZoneID::COUNT,   "Hat 209 - TODO"    },
+    { 210,  ZoneID::COUNT,   "Hat 210 - TODO"    },
+    { 211,  ZoneID::COUNT,   "Hat 211 - TODO"    },
+    { 214,  ZoneID::COUNT,   "Hat 214 - TODO"    },
+    { 215,  ZoneID::COUNT,   "Hat 215 - TODO"    },
+    { 216,  ZoneID::COUNT,   "Hat 216 - TODO"    },
+    { 217,  ZoneID::COUNT,   "Hat 217 - TODO"    },
+    { 219,  ZoneID::COUNT,   "Hat 219 - TODO"    },
+
+    // ── Slot 3 — Accessories (checkId = 300 + id) ───────────────────────────
+    { 301,  ZoneID::COUNT,   "Accessory 301 - TODO" },
+    { 302,  ZoneID::COUNT,   "Accessory 302 - TODO" },
+    { 304,  ZoneID::COUNT,   "Accessory 304 - TODO" },
+    { 306,  ZoneID::COUNT,   "Accessory 306 - TODO" },
+    { 310,  ZoneID::COUNT,   "Accessory 310 - TODO" },
+};
+
 void CheckAvailability::RegisterClothingTimes()
 {
-    // Clothing zone data not yet mapped per costume ID — using COUNT (no key required).
-    // Update individual entries once per-costume store locations are confirmed.
-
-    for (int id = 0; id <= 26; id++)
-        s_availabilityDB[{CheckType::Clothing, (uint32_t)id}] = {
-            TimeManager::GAME_START_TICK, false, ZoneID::COUNT, "Clothing - Slot 0 Outfit" };
-    for (int id = 28; id <= 33; id++)
-        s_availabilityDB[{CheckType::Clothing, (uint32_t)id}] = {
-            TimeManager::GAME_START_TICK, false, ZoneID::COUNT, "Clothing - Slot 0 Outfit" };
-    s_availabilityDB[{CheckType::Clothing, 38}] = {
-        TimeManager::GAME_START_TICK, false, ZoneID::COUNT, "Clothing - Slot 0 Outfit" };
-    for (int id = 40; id <= 42; id++)
-        s_availabilityDB[{CheckType::Clothing, (uint32_t)id}] = {
-            TimeManager::GAME_START_TICK, false, ZoneID::COUNT, "Clothing - Slot 0 Outfit" };
-
-    for (int id = 100; id <= 109; id++)
-        s_availabilityDB[{CheckType::Clothing, (uint32_t)id}] = {
-            TimeManager::GAME_START_TICK, false, ZoneID::COUNT, "Clothing - Slot 1 Shoes" };
-
-    for (int id : {202, 203, 204, 205, 207, 208, 209, 210, 211, 214, 215, 216, 217, 219})
-        s_availabilityDB[{CheckType::Clothing, (uint32_t)id}] = {
-            TimeManager::GAME_START_TICK, false, ZoneID::COUNT, "Clothing - Slot 2 Head Wear" };
-
-    for (int id : {301, 302, 304, 306, 310})
-        s_availabilityDB[{CheckType::Clothing, (uint32_t)id}] = {
-            TimeManager::GAME_START_TICK, false, ZoneID::COUNT, "Clothing - Slot 3 Accessory" };
+    for (const auto& e : kClothingDB)
+        s_availabilityDB[{CheckType::Clothing, e.checkId}] = {
+            TimeManager::GAME_START_TICK, false, e.zone, e.notes };
 }
 
 uint32_t CheckAvailability::GetEarliestTime(CheckId check)

@@ -1,80 +1,152 @@
 
 #include "CrashHandler.h"
 #include <stdio.h>
-#include <imagehlp.h>
-#pragma comment(lib, "imagehlp")
+#include <dbghelp.h>
+#pragma comment(lib, "dbghelp")
 
 static HMODULE g_ourDllBase = nullptr;
 
+// ── helpers ────────────────────────────────────────────────────────────────
+
+static void GetLogPath(char* out, DWORD size)
+{
+    GetModuleFileNameA(NULL, out, size);
+    char* sl = strrchr(out, '\\'); if (sl) *(sl+1) = 0;
+    strcat_s(out, size, "crash_log.txt");
+}
+
+static void PrintAddr(FILE* f, HANDLE hProc, uintptr_t addr,
+                      uintptr_t gameBase, uintptr_t dllBase, uintptr_t dllSize,
+                      bool symOk)
+{
+    // Module label
+    if (dllSize && addr >= dllBase && addr < dllBase + dllSize)
+        fprintf(f, "DLL+0x%05llX", (unsigned long long)(addr - dllBase));
+    else if (gameBase && addr >= gameBase && addr < gameBase + 0x10000000ULL)
+        fprintf(f, "GAME+0x%llX", (unsigned long long)(addr - gameBase));
+    else
+        fprintf(f, "0x%llX", (unsigned long long)addr);
+
+    if (!symOk) return;
+
+    // Function name + offset
+    char symBuf[sizeof(SYMBOL_INFO) + 512] = {};
+    SYMBOL_INFO* sym = (SYMBOL_INFO*)symBuf;
+    sym->SizeOfStruct = sizeof(SYMBOL_INFO);
+    sym->MaxNameLen   = 512;
+    DWORD64 fnDisp = 0;
+    if (SymFromAddr(hProc, (DWORD64)addr, &fnDisp, sym))
+    {
+        fprintf(f, "  ->  %s", sym->Name);
+        if (fnDisp) fprintf(f, "+0x%llX", (unsigned long long)fnDisp);
+    }
+
+    // Source file + line
+    IMAGEHLP_LINE64 li = {};
+    li.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+    DWORD lineDisp = 0;
+    if (SymGetLineFromAddr64(hProc, (DWORD64)addr, &lineDisp, &li))
+        fprintf(f, "  [%s:%lu]", li.FileName, li.LineNumber);
+}
+
+// ── exception handler ──────────────────────────────────────────────────────
+
 static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep)
 {
-    CHAR path[MAX_PATH] = { 0 };
-    GetModuleFileNameA(NULL, path, MAX_PATH);
-    char* sl = strrchr(path, '\\'); if (sl) *(sl+1) = 0;
-    strcat_s(path, MAX_PATH, "transition_log.txt");
+    char logPath[MAX_PATH] = {};
+    GetLogPath(logPath, MAX_PATH);
+    FILE* f = fopen(logPath, "a");
+    if (!f) return EXCEPTION_CONTINUE_SEARCH;
 
-    FILE* f = fopen(path, "a");
-    if (f)
+    SYSTEMTIME t;
+    GetLocalTime(&t);
+    fprintf(f, "\n[CRASH] ===== %04d-%02d-%02d %02d:%02d:%02d =====\n",
+        t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond);
+
+    // ── DbgHelp init ───────────────────────────────────────────────────────
+    HANDLE hProc = GetCurrentProcess();
+
+    // Build symbol search path: exe dir + DLL dir
+    char exeDir[MAX_PATH] = {};
+    GetModuleFileNameA(NULL, exeDir, MAX_PATH);
+    { char* s = strrchr(exeDir, '\\'); if (s) *(s+1) = 0; }
+
+    char dllDir[MAX_PATH] = {};
+    GetModuleFileNameA(g_ourDllBase, dllDir, MAX_PATH);
+    { char* s = strrchr(dllDir, '\\'); if (s) *(s+1) = 0; }
+
+    char symPath[MAX_PATH * 2] = {};
+    sprintf_s(symPath, "%s;%s", exeDir, dllDir);
+
+    SymSetOptions(SYMOPT_UNDNAME | SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS);
+    bool symOk = SymInitialize(hProc, symPath, TRUE) != 0;
+
+    // ── module layout ──────────────────────────────────────────────────────
+    uintptr_t gameBase = (uintptr_t)GetModuleHandleA(nullptr);
+    uintptr_t dllBase  = (uintptr_t)g_ourDllBase;
+
+    // DLL size from PE headers (no extra libs needed)
+    uintptr_t dllSize = 0;
+    if (dllBase)
     {
-        uintptr_t gameBase = (uintptr_t)GetModuleHandleA(nullptr);
-        uintptr_t dllBase  = (uintptr_t)g_ourDllBase;
-        uintptr_t fault    = (uintptr_t)ep->ExceptionRecord->ExceptionAddress;
-
-        uintptr_t gameRva = (fault >= gameBase && gameBase) ? (fault - gameBase + 0x140000000ULL) : 0;
-        uintptr_t dllRva  = (fault >= dllBase  && dllBase)  ? (fault - dllBase) : 0;
-
-        fprintf(f, "[CRASH] Code=0x%08X\n", ep->ExceptionRecord->ExceptionCode);
-        fprintf(f, "[CRASH] GameBase=0x%llX  DLLBase=0x%llX  FaultAddr=0x%llX\n",
-            (unsigned long long)gameBase, (unsigned long long)dllBase,
-            (unsigned long long)fault);
-        fprintf(f, "[CRASH] GameRVA=0x%llX  DLLRVA=0x%llX  (0=not in that module)\n",
-            (unsigned long long)gameRva, (unsigned long long)dllRva);
-
-        if (ep->ExceptionRecord->ExceptionCode == 0xC0000005 &&
-            ep->ExceptionRecord->NumberParameters >= 2)
-        {
-            fprintf(f, "[CRASH] AccessType=%s  BadAddr=0x%llX\n",
-                ep->ExceptionRecord->ExceptionInformation[0] == 0 ? "READ" :
-                ep->ExceptionRecord->ExceptionInformation[0] == 1 ? "WRITE" : "EXEC",
-                (unsigned long long)ep->ExceptionRecord->ExceptionInformation[1]);
-        }
-
-        CONTEXT* ctx = ep->ContextRecord;
-        fprintf(f, "[CRASH] RCX=0x%llX  RDX=0x%llX  R8=0x%llX  R9=0x%llX\n",
-            (unsigned long long)ctx->Rcx, (unsigned long long)ctx->Rdx,
-            (unsigned long long)ctx->R8,  (unsigned long long)ctx->R9);
-        fprintf(f, "[CRASH] RBX=0x%llX  RDI=0x%llX  RSI=0x%llX\n",
-            (unsigned long long)ctx->Rbx, (unsigned long long)ctx->Rdi,
-            (unsigned long long)ctx->Rsi);
-
-        // Raw stack words
-        uintptr_t* rsp = (uintptr_t*)ctx->Rsp;
-        fprintf(f, "[CRASH] RSP[0..7]:");
-        for (int i = 0; i < 8; i++)
-        {
-            __try { fprintf(f, " %llX", (unsigned long long)rsp[i]); }
-            __except(EXCEPTION_EXECUTE_HANDLER) { break; }
-        }
-        fprintf(f, "\n");
-
-        // Stack walk — print return addresses with DLL/game RVA labels
-        fprintf(f, "[CRASH] Stack walk:\n");
-        void* frames[48] = {};
-        USHORT count = RtlCaptureStackBackTrace(0, 48, frames, NULL);
-        for (USHORT i = 0; i < count; i++)
-        {
-            uintptr_t addr    = (uintptr_t)frames[i];
-            uintptr_t gRva    = (addr >= gameBase && gameBase) ? (addr - gameBase + 0x140000000ULL) : 0;
-            uintptr_t dRva    = (addr >= dllBase  && dllBase)  ? (addr - dllBase) : 0;
-            if (dRva)
-                fprintf(f, "[CRASH]   [%2u] DLL+0x%llX\n", i, (unsigned long long)dRva);
-            else if (gRva)
-                fprintf(f, "[CRASH]   [%2u] GAME+0x%llX\n", i, (unsigned long long)(addr - gameBase));
-            else
-                fprintf(f, "[CRASH]   [%2u] 0x%llX\n", i, (unsigned long long)addr);
-        }
-        fclose(f);
+        auto* dos = (IMAGE_DOS_HEADER*)dllBase;
+        auto* nt  = (IMAGE_NT_HEADERS*)((BYTE*)dllBase + dos->e_lfanew);
+        dllSize = nt->OptionalHeader.SizeOfImage;
     }
+
+    uintptr_t fault = (uintptr_t)ep->ExceptionRecord->ExceptionAddress;
+
+    // ── fault location ─────────────────────────────────────────────────────
+    fprintf(f, "[CRASH] Code=0x%08X\n", ep->ExceptionRecord->ExceptionCode);
+    fprintf(f, "[CRASH] Fault: ");
+    PrintAddr(f, hProc, fault, gameBase, dllBase, dllSize, symOk);
+    fprintf(f, "\n");
+
+    if (ep->ExceptionRecord->ExceptionCode == 0xC0000005 &&
+        ep->ExceptionRecord->NumberParameters >= 2)
+    {
+        fprintf(f, "[CRASH] AccessType=%s  BadAddr=0x%llX\n",
+            ep->ExceptionRecord->ExceptionInformation[0] == 0 ? "READ" :
+            ep->ExceptionRecord->ExceptionInformation[0] == 1 ? "WRITE" : "EXEC",
+            (unsigned long long)ep->ExceptionRecord->ExceptionInformation[1]);
+    }
+
+    // ── registers ─────────────────────────────────────────────────────────
+    CONTEXT* ctx = ep->ContextRecord;
+    fprintf(f, "[CRASH] RAX=%016llX  RCX=%016llX  RDX=%016llX  RBX=%016llX\n",
+        ctx->Rax, ctx->Rcx, ctx->Rdx, ctx->Rbx);
+    fprintf(f, "[CRASH] RSP=%016llX  RBP=%016llX  RSI=%016llX  RDI=%016llX\n",
+        ctx->Rsp, ctx->Rbp, ctx->Rsi, ctx->Rdi);
+    fprintf(f, "[CRASH]  R8=%016llX   R9=%016llX  R10=%016llX  R11=%016llX\n",
+        ctx->R8, ctx->R9, ctx->R10, ctx->R11);
+    fprintf(f, "[CRASH] R12=%016llX  R13=%016llX  R14=%016llX  R15=%016llX\n",
+        ctx->R12, ctx->R13, ctx->R14, ctx->R15);
+
+    // ── stack walk from fault context ──────────────────────────────────────
+    fprintf(f, "[CRASH] Stack:\n");
+
+    STACKFRAME64 sf = {};
+    sf.AddrPC.Offset    = ctx->Rip;  sf.AddrPC.Mode    = AddrModeFlat;
+    sf.AddrFrame.Offset = ctx->Rbp;  sf.AddrFrame.Mode = AddrModeFlat;
+    sf.AddrStack.Offset = ctx->Rsp;  sf.AddrStack.Mode = AddrModeFlat;
+
+    CONTEXT ctxCopy = *ctx;
+    for (int i = 0; i < 48; i++)
+    {
+        if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, hProc, GetCurrentThread(),
+            &sf, &ctxCopy, nullptr,
+            SymFunctionTableAccess64, SymGetModuleBase64, nullptr))
+            break;
+        if (sf.AddrPC.Offset == 0) break;
+
+        fprintf(f, "[CRASH]   [%2d] ", i);
+        PrintAddr(f, hProc, (uintptr_t)sf.AddrPC.Offset,
+                  gameBase, dllBase, dllSize, symOk);
+        fprintf(f, "\n");
+    }
+
+    if (symOk) SymCleanup(hProc);
+    fclose(f);
     return EXCEPTION_CONTINUE_SEARCH;
 }
 

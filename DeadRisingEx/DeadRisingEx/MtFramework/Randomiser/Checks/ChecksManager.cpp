@@ -149,3 +149,10 @@ std::vector<uint16_t> SaveStateManager::GetCompletedChecks()
 {
     return s_completedChecks;
 }
+
+void SaveStateManager::ResetCompletedChecks()
+{
+    s_completedChecks.clear();
+    SaveCheckState();
+    LogLine("[SAVESTATE] Completed checks reset (re-seed)");
+}

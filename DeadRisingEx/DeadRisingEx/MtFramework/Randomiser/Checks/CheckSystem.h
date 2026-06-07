@@ -84,16 +84,30 @@ struct CheckIdHash
 using CheckCallback = std::function<void(CheckId, Reward)>;
 
 // ─────────────────────────────────────────────
+//  CheckSystem state machine
+// ─────────────────────────────────────────────
+
+enum class CheckSystemState : uint8_t
+{
+    UNINITIALIZED = 0,  // Before Initialize()
+    BOOTSTRAPPING = 1,  // Inside Initialize(), subsystems loading
+    SEED_READY    = 2,  // Seed + reward map built, draining queued events
+    READY         = 3,  // Fully live — CompleteCheck dispatches immediately
+    RESEEDING     = 4,  // SetSeed() mid-game, reward map being rebuilt
+};
+
+// ─────────────────────────────────────────────
 //  CheckSystem
 // ─────────────────────────────────────────────
 
 class CheckSystem
 {
 public:
-    static void      Initialize();
-    static void      SetSeed(uint32_t seed);
-    static uint32_t  GetSeed();
-    static bool      IsReady();
+    static void               Initialize();
+    static void               SetSeed(uint32_t seed);
+    static uint32_t           GetSeed();
+    static bool               IsReady();
+    static CheckSystemState   GetState();
 
     static void RegisterCheckRange(CheckType type, uint32_t idMin, uint32_t idMax);
     static void CompleteCheck(CheckType type, uint32_t id);
@@ -104,7 +118,7 @@ public:
     static int  GetTotalChecks();
     static int  GetCompletedChecks();
 
-    static bool IsSeedBeatable();
+    static bool IsSeedBeatable(bool quiet = false);
     static void GenerateBeatableSeed();
     static void DumpSeedAnalysis();  // Debug helper
 

@@ -18,6 +18,9 @@ public:
     
     // Get all completed checks
     static std::vector<uint16_t> GetCompletedChecks();
+
+    // Clear all completed checks from memory and disk (used when re-seeding mid-game)
+    static void ResetCompletedChecks();
     
 private:
     static std::string GetSaveFilePath();

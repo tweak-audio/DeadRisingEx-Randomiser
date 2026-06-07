@@ -66,6 +66,13 @@ bool PsychopathPhotoCheck::IsKnownPsychopath(uint32_t psychopathId)
     return s_knownPsychopaths.count(psychopathId) > 0;
 }
 
+void PsychopathPhotoCheck::OnAreaTransition()
+{
+    s_npcObjectToPsychopathId.clear();
+    s_runtimeIdToPsychopathId.clear();
+    LogLine("[PSYCHOPATH PHOTO] Area transition: cleared stale NPC pointer/runtime maps");
+}
+
 uint32_t PsychopathPhotoCheck::GetPsychopathIdFromObject(void* npcObject)
 {
     auto it = s_npcObjectToPsychopathId.find(npcObject);

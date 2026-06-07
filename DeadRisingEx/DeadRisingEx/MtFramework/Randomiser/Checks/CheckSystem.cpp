@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <Windows.h>
 
 static const char* SEED_FILE_PATH = "DeadRisingEx_Randomiser_Seed.dat";
 
@@ -39,9 +40,11 @@ static std::vector<CheckCallback>                   s_callbacks;
 
 static uint32_t s_seed     = 0;
 static uint32_t s_rngState = 0;
-static bool     s_ready    = false;
 
 static int s_setItemCount = 0;
+
+static CheckSystemState                            s_state       = CheckSystemState::UNINITIALIZED;
+static std::vector<std::pair<CheckType, uint32_t>> s_pendingChecks;
 
 // ─────────────────────────────────────────────
 //  RNG
@@ -88,6 +91,15 @@ static void RebuildCheckList()
     for (auto& range : s_checkRanges)
         for (uint32_t id = range.idMin; id <= range.idMax; id++)
             s_allChecks.push_back({ range.type, id });
+}
+
+static void DrainPendingChecks()
+{
+    // Move out first so any check that re-queues during drain doesn't corrupt iteration
+    auto pending = std::move(s_pendingChecks);
+    s_pendingChecks.clear();
+    for (auto& [type, id] : pending)
+        CheckSystem::CompleteCheck(type, id);
 }
 
 void CheckSystem::GenerateRewardMap()
@@ -176,24 +188,26 @@ void CheckSystem::GenerateRewardMap()
 
 int CheckSystem::GetSetItemCount() { return s_setItemCount; }
 
-bool CheckSystem::IsSeedBeatable()
+bool CheckSystem::IsSeedBeatable(bool quiet)
 {
-    if (!s_ready)
+    if (s_allChecks.empty() || s_rewardMap.empty())
     {
-        LogLine("[SEED VALIDATION] ERROR: System not ready");
+        if (!quiet) LogLine("[SEED VALIDATION] ERROR: check list or reward map not built");
         return false;
     }
 
     TimeManager::ChunkSize mode = TimeChunkReward::GetChunkMode();
     int totalChunks = TimeChunkReward::GetTotalChunks();
 
-    LogLine("[SEED VALIDATION] === CHECKING SEED BEATABILITY ===");
-
     char buf[256];
-    sprintf_s(buf, "[SEED VALIDATION] Mode: %s, Total chunks needed: %d",
-              (mode == TimeManager::ChunkSize::SIX_HOURS) ? "6hr" : "12hr",
-              totalChunks - 1);
-    LogLine(buf);
+    if (!quiet)
+    {
+        LogLine("[SEED VALIDATION] === CHECKING SEED BEATABILITY ===");
+        sprintf_s(buf, "[SEED VALIDATION] Mode: %s, Total chunks needed: %d",
+                  (mode == TimeManager::ChunkSize::SIX_HOURS) ? "6hr" : "12hr",
+                  totalChunks - 1);
+        LogLine(buf);
+    }
 
     // Starting state: chunk 0 unlocked, Frank starts in Paradise Plaza
     int chunksUnlocked = 1;
@@ -231,10 +245,13 @@ bool CheckSystem::IsSeedBeatable()
                 currentMaxTime = TimeManager::GetChunk(mode, chunksUnlocked - 1).endTick;
                 anyProgress = true;
 
-                sprintf_s(buf, "[SEED VALIDATION]   +TimeChunk -> %d/%d unlocked, limit now %s",
-                          chunksUnlocked, totalChunks,
-                          TimeManager::TicksToTimeString(currentMaxTime).c_str());
-                LogLine(buf);
+                if (!quiet)
+                {
+                    sprintf_s(buf, "[SEED VALIDATION]   +TimeChunk -> %d/%d unlocked, limit now %s",
+                              chunksUnlocked, totalChunks,
+                              TimeManager::TicksToTimeString(currentMaxTime).c_str());
+                    LogLine(buf);
+                }
             }
             else if (reward.type == RewardType::AreaKey)
             {
@@ -245,9 +262,12 @@ bool CheckSystem::IsSeedBeatable()
                     zonesUnlocked[static_cast<int>(grantedZone)] = true;
                     anyProgress = true;
 
-                    sprintf_s(buf, "[SEED VALIDATION]   +AreaKey -> unlocked %s",
-                              AreaKeySystem::GetZoneName(grantedZone));
-                    LogLine(buf);
+                    if (!quiet)
+                    {
+                        sprintf_s(buf, "[SEED VALIDATION]   +AreaKey -> unlocked %s",
+                                  AreaKeySystem::GetZoneName(grantedZone));
+                        LogLine(buf);
+                    }
                 }
             }
         }
@@ -255,12 +275,15 @@ bool CheckSystem::IsSeedBeatable()
 
     if (chunksUnlocked >= totalChunks)
     {
-        LogLine("[SEED VALIDATION] SEED IS BEATABLE");
+        if (!quiet) LogLine("[SEED VALIDATION] SEED IS BEATABLE");
         return true;
     }
 
-    sprintf_s(buf, "[SEED VALIDATION] UNBEATABLE: stuck at %d/%d chunks", chunksUnlocked, totalChunks);
-    LogLine(buf);
+    if (!quiet)
+    {
+        sprintf_s(buf, "[SEED VALIDATION] UNBEATABLE: stuck at %d/%d chunks", chunksUnlocked, totalChunks);
+        LogLine(buf);
+    }
     return false;
 }
 
@@ -274,8 +297,8 @@ void CheckSystem::GenerateBeatableSeed()
     while (attempts < MAX_ATTEMPTS)
     {
         SetSeed(0);  // Generate random seed
-        
-        if (IsSeedBeatable())
+
+        if (IsSeedBeatable(/*quiet=*/true))
         {
             char buf[128];
             sprintf_s(buf, "[SEED] ✓ Found beatable seed after %d attempts: %u", 
@@ -564,24 +587,14 @@ void CheckSystem::LoadCompletedChecks()
 //  Public API
 // ─────────────────────────────────────────────
 
-static bool s_initialized = false;
-
 void CheckSystem::Initialize()
 {
-    if (s_initialized)
+    if (s_state != CheckSystemState::UNINITIALIZED)
         return;
 
-    s_initialized = true;
+    s_state = CheckSystemState::BOOTSTRAPPING;
 
     SaveStateManager::Initialize();
-    
-    // Set chunk mode BEFORE initializing TimeChunkReward
-    #if USE_6_HOUR_CHUNKS
-        TimeChunkReward::SetChunkMode(TimeManager::ChunkSize::SIX_HOURS);
-    #else
-        TimeChunkReward::SetChunkMode(TimeManager::ChunkSize::TWELVE_HOURS);
-    #endif
-    
     TimeChunkReward::Initialize();
     
     // Register all check ranges BEFORE building check list
@@ -636,60 +649,68 @@ void CheckSystem::Initialize()
     // Load or generate seed
     if (!LoadSeedFromFile())
     {
-        // No saved seed - generate a beatable one
         LogLine("[CHECKS] No saved seed found - generating new beatable seed");
         GenerateBeatableSeed();
     }
     else
     {
-        // Seed loaded - MUST regenerate reward map for the loaded seed
-        GenerateRewardMap();  // This uses s_seed that was loaded
-        
+        GenerateRewardMap();  // rebuild from loaded seed
+
         char buf[64];
         sprintf_s(buf, "[CHECKS] Loaded seed: %u", s_seed);
         LogLine(buf);
-        
-        // Validate the loaded seed
+
         if (!IsSeedBeatable())
         {
-            LogLine("[CHECKS] ✗ Loaded seed is UNBEATABLE! Generating new one...");
+            LogLine("[CHECKS] Loaded seed is UNBEATABLE! Generating new one...");
             GenerateBeatableSeed();
         }
         else
         {
-            LogLine("[CHECKS] ✓ Loaded seed is beatable!");
-            WriteSeedAnalysisToFile();  // Write analysis for the loaded seed
+            LogLine("[CHECKS] Loaded seed is beatable!");
+            WriteSeedAnalysisToFile();
         }
     }
-    
+
     LoadCompletedChecks();
-    
-    s_ready = true;
+
+    s_state = CheckSystemState::SEED_READY;
+    DrainPendingChecks();   // replay any checks that arrived during BOOTSTRAPPING
+    s_state = CheckSystemState::READY;
 }
 
 void CheckSystem::SetSeed(uint32_t seed)
 {
+    CheckSystemState prev = s_state;
+    s_state = CheckSystemState::RESEEDING;
+
     if (seed == 0)
     {
-        srand((unsigned int)time(nullptr));
-        seed = (uint32_t)rand();
+        // Use performance counter so rapid successive calls get different seeds
+        LARGE_INTEGER pc;
+        QueryPerformanceCounter(&pc);
+        seed = (uint32_t)(pc.QuadPart ^ (pc.QuadPart >> 17) ^ (uint64_t)time(nullptr));
+        if (seed == 0) seed = 1;
     }
-    s_seed = seed;
+    s_seed     = seed;
+    s_rngState = 0;     // reset stale LCG state before GenerateRewardMap seeds it
     s_completed.clear();
+    SaveStateManager::ResetCompletedChecks();   // keep disk in sync with cleared memory
     RebuildCheckList();
     GenerateRewardMap();
     SaveSeedToFile();
-    s_ready = true;
-
     ResetRewardSlots();
+
+    s_state = (prev == CheckSystemState::READY) ? CheckSystemState::READY : prev;
 
     char buf[64];
     sprintf_s(buf, "[CHECKS] Seed set: %u", s_seed);
     LogLine(buf);
 }
 
-uint32_t CheckSystem::GetSeed()          { return s_seed; }
-bool     CheckSystem::IsReady()          { return s_ready; }
+uint32_t          CheckSystem::GetSeed()   { return s_seed; }
+bool              CheckSystem::IsReady()  { return s_state == CheckSystemState::READY; }
+CheckSystemState  CheckSystem::GetState() { return s_state; }
 int      CheckSystem::GetTotalChecks()   { return (int)s_allChecks.size(); }
 int      CheckSystem::GetCompletedChecks() { return (int)s_completed.size(); }
 
@@ -708,14 +729,23 @@ Reward CheckSystem::GetRewardForCheck(CheckId check)
 void CheckSystem::CompleteCheck(CheckType type, uint32_t id)
 {
     char buf[128];
-    
+
     // Debug — log state at time of check
-    sprintf_s(buf, "[CHECKS] CompleteCheck called. ready=%d total=%d completed=%d type=%u id=%u",
-        s_ready, (int)s_allChecks.size(), (int)s_completed.size(),
-        (uint32_t)type, id);
+    sprintf_s(buf,
+        "[CHECKS] CompleteCheck called. state=%u total=%d completed=%d type=%u id=%u",
+        (uint32_t)s_state,
+        (int)s_allChecks.size(),
+        (int)s_completed.size(),
+        (uint32_t)type,
+        id);
     LogLine(buf);
 
-    if (!s_ready) return;
+    if (s_state != CheckSystemState::READY)
+    {
+        s_pendingChecks.push_back({ type, id });
+        LogLine("[CHECKS] Queued check — system not READY yet");
+        return;
+    }
 
     CheckId  check = { type, id };
     uint64_t key   = CheckKey(check);

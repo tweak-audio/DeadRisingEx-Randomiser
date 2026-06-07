@@ -6,6 +6,7 @@
 #include "ClothingCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/CheckSystem.h"
 #include "../InputSystem.h"
+#include "../AreaTransitionHook.h"
 
 namespace ClothingCheck
 {
@@ -18,10 +19,9 @@ namespace ClothingCheck
 
     static void* s_costumeStateMachineObj = nullptr;
 
-    // ── Achievement-only costumes (rewards only, never checks) ──
     static const int s_achievementCostumes[] = {
-        27, 34, 35, 36, 37, 39,  // slot 0
-        303, 305, 307             // slot 3
+        27, 34, 35, 36, 37, 39,
+        303, 305, 307
     };
 
     static bool IsAchievementCostume(int checkId)
@@ -29,6 +29,30 @@ namespace ClothingCheck
         for (int id : s_achievementCostumes)
             if (id == checkId) return true;
         return false;
+    }
+
+    // ═══════════════════════════════════════════
+    //  COSTUME LOG
+    // ═══════════════════════════════════════════
+
+    static void LogCostume(uint8_t slot, uint8_t id, int checkId)
+    {
+        static bool s_headerWritten = false;
+
+        FILE* f = nullptr;
+        fopen_s(&f, "costume_log.txt", "a");
+        if (!f) return;
+
+        if (!s_headerWritten)
+        {
+            fprintf(f, "%-10s %-10s %-10s %-10s\n", "checkId", "slot", "id", "areaId");
+            fprintf(f, "---------- ---------- ---------- ----------\n");
+            s_headerWritten = true;
+        }
+
+        uint32_t areaId = AreaTransitionHook::GetCurrentAreaId();
+        fprintf(f, "%-10d %-10d %-10d 0x%-8X\n", checkId, slot, id, areaId);
+        fclose(f);
     }
 
     // ═══════════════════════════════════════════
@@ -48,15 +72,15 @@ namespace ClothingCheck
         uint8_t id      = *(uint8_t*)((uintptr_t)costumeItem + 0x70c);
         int     checkId = slot * 100 + id;
 
+        LogCostume(slot, id, checkId);
+
         if (!IsAchievementCostume(checkId))
         {
             char buf[64];
-            sprintf_s(buf, "[COSTUME] Firing check %d", checkId);
+            sprintf_s(buf, "[COSTUME] slot=%d id=%d checkId=%d", slot, id, checkId);
             LogLine(buf);
 
             CheckSystem::CompleteCheck(CheckType::Clothing, (uint32_t)checkId);
-
-            // Don't call originalCostumePickup — costume change is handled by reward system only
             return;
         }
 

@@ -99,24 +99,13 @@ static bool TryReadRuntimeId(void* npcObject, uint32_t& outRuntimeId)
     return false;
 }
 
-void SurvivorPhotoCheck::UpdateRuntimeMappings()
+void SurvivorPhotoCheck::OnAreaTransition()
 {
-    for (auto& pair : s_npcObjectToSurvivorId)
-    {
-        void* npcObject = pair.first;
-        uint32_t survivorId = pair.second;
-        
-        uint32_t runtimeId = 0;
-        if (TryReadRuntimeId(npcObject, runtimeId) && runtimeId != 0)
-        {
-            s_runtimeIdToSurvivorId[runtimeId] = survivorId;
-            
-            char buf[256];
-            sprintf_s(buf, "[SURVIVOR PHOTO] Updated runtime mapping: runtimeId=0x%X → survivorId=0x%X", 
-                runtimeId, survivorId);
-            LogLine(buf);
-        }
-    }
+    // NPC object pointers and runtime IDs become stale after an area load.
+    // Photo IDs are NPC-type-stable so s_photoIdToSurvivorId is intentionally kept.
+    s_npcObjectToSurvivorId.clear();
+    s_runtimeIdToSurvivorId.clear();
+    LogLine("[SURVIVOR PHOTO] Area transition: cleared stale NPC pointer/runtime maps");
 }
 
 // ─────────────────────────────────────────────

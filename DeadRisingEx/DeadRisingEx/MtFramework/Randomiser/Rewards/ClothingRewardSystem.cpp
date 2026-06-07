@@ -209,38 +209,74 @@ ClothingRewardResult GiveNextClothingReward()
 
 void ApplyRandomStartingOutfit()
 {
+    LogLine("[OUTFIT] ApplyRandomStartingOutfit enter");
+
     uint32_t seed = CheckSystem::GetSeed();
-    if (seed == 0) return;
+    char seedbuf[64];
+    sprintf_s(seedbuf, "[OUTFIT] Seed = %u", seed);
+    LogLine(seedbuf);
 
-    // Separate RNG offset from reward slots
+    if (seed == 0)
+    {
+        LogLine("[OUTFIT] Seed is 0 — aborting");
+        return;
+    }
+
     RngSeed(seed ^ 0xF0FFFFFF);
+    LogLine("[OUTFIT] RNG seeded");
 
-    // Build per-slot lists from the pool
-    // Slot indices: 0=outfit, 1=shoes, 2=glasses/hat, 3=accessory
-    std::vector<uint8_t> slotIds[6];
+    // Use fixed-size C arrays — avoids heap allocation inside a game hook,
+    // which can crash if the game's allocator is in a bad state at this point.
+    // Max per slot: slot0=42, slot1=10, slot2=15, slot3=8 — 64 is safe headroom.
+    uint8_t slotIds[6][64] = {};
+    int     slotCounts[6]  = {};
+
+    LogLine("[OUTFIT] Slot arrays allocated");
+
     for (int i = 0; i < COSTUME_POOL_SIZE; i++)
-        slotIds[g_costumePool[i].slot].push_back(g_costumePool[i].id);
+    {
+        uint8_t slot = g_costumePool[i].slot;
+        if (slot < 6 && slotCounts[slot] < 64)
+            slotIds[slot][slotCounts[slot]++] = g_costumePool[i].id;
+    }
+
+    char countbuf[128];
+    sprintf_s(countbuf, "[OUTFIT] Slot counts: 0=%d 1=%d 2=%d 3=%d 4=%d 5=%d",
+              slotCounts[0], slotCounts[1], slotCounts[2],
+              slotCounts[3], slotCounts[4], slotCounts[5]);
+    LogLine(countbuf);
 
     for (int slot = 0; slot < 6; slot++)
     {
-        if (slotIds[slot].empty()) continue;
+        if (slotCounts[slot] == 0)
+        {
+            char buf[64];
+            sprintf_s(buf, "[OUTFIT] Slot %d: empty pool, skipping", slot);
+            LogLine(buf);
+            continue;
+        }
 
-        // +1 to include "no change" as an option (index 0 = no change)
-        int pick = RngRange(0, (int)slotIds[slot].size() + 1);
+        int pick = RngRange(0, slotCounts[slot] + 1);
 
         if (pick == 0)
         {
             char buf[64];
-            sprintf_s(buf, "[OUTFIT] Slot %d: no change", slot);
+            sprintf_s(buf, "[OUTFIT] Slot %d: no change (pick=0)", slot);
             LogLine(buf);
             continue;
         }
 
         uint8_t id = slotIds[slot][pick - 1];
+
+        char buf[96];
+        sprintf_s(buf, "[OUTFIT] Slot %d: pick=%d id=%d — calling GiveCostume", slot, pick, id);
+        LogLine(buf);
+
         ClothingReward::GiveCostume((uint8_t)slot, id);
 
-        char buf[64];
-        sprintf_s(buf, "[OUTFIT] Slot %d: id=%d", slot, id);
+        sprintf_s(buf, "[OUTFIT] Slot %d: GiveCostume returned", slot);
         LogLine(buf);
     }
+
+    LogLine("[OUTFIT] ApplyRandomStartingOutfit done");
 }

@@ -41,6 +41,7 @@ static DeathTriggerFunc TriggerDeath =
     (DeathTriggerFunc)GetModuleAddress(0x14027cf50);
 
 GameStateTickFunc Original_GameStateTick = nullptr;
+static bool g_pendingStartingOutfit = false;
 
 // ═══════════════════════════════════════════
 //  HOOKS
@@ -51,16 +52,46 @@ void __fastcall Hook_GameStateTick(void* gameStateManager)
     if (!g_RealGameStateManager)
     {
         g_RealGameStateManager = gameStateManager;
-        
+
         char buf[256];
         sprintf_s(buf, "[TICK] Captured game state manager: %p", gameStateManager);
         LogLine(buf);
-        
+
         uint8_t state = *(uint8_t*)((uintptr_t)gameStateManager + GAME_STATE_OFFSET);
         sprintf_s(buf, "[TICK] State at +0x38: 0x%X", state);
         LogLine(buf);
     }
-    
+
+    // Defer ApplyRandomStartingOutfit until the game leaves loading state (0x0).
+    // ApplyCostumeSlot crashes when called while the game state manager is still
+    // at 0 — the costume system isn't live until the game advances past loading.
+    if (g_pendingStartingOutfit && uPlayerInstance && g_RealGameStateManager)
+    {
+        uint8_t state = *(uint8_t*)((uintptr_t)g_RealGameStateManager + GAME_STATE_OFFSET);
+
+        // Log state transitions while waiting (first 5 ticks + every time it changes)
+        static uint8_t s_lastOutfitWaitState = 0xFF;
+        static int s_outfitWaitTicks = 0;
+        s_outfitWaitTicks++;
+        if (state != s_lastOutfitWaitState || s_outfitWaitTicks <= 5)
+        {
+            char buf[128];
+            sprintf_s(buf, "[TICK] Outfit pending — state=0x%X (tick %d)", state, s_outfitWaitTicks);
+            LogLine(buf);
+            s_lastOutfitWaitState = state;
+        }
+
+        if (state != 0)
+        {
+            char buf[128];
+            sprintf_s(buf, "[TICK] Outfit state cleared — firing ApplyRandomStartingOutfit (state=0x%X)", state);
+            LogLine(buf);
+            g_pendingStartingOutfit = false;
+            ApplyRandomStartingOutfit();
+            LogLine("[TICK] ApplyRandomStartingOutfit returned");
+        }
+    }
+
     Original_GameStateTick(gameStateManager);
     //CaseCheck, not quite working yet
     //CaseCheck::OnGameStateTick();
@@ -68,23 +99,33 @@ void __fastcall Hook_GameStateTick(void* gameStateManager)
 
 void* __stdcall Hook_uPlayer_ctor(void* thisptr)
 {
-    uPlayerInstance = thisptr;
-    void* result = uPlayer_ctor(thisptr);
+    char buf[128];
+    sprintf_s(buf, "[HOOK] uPlayer ctor enter — thisptr=%p", thisptr);
+    LogLine(buf);
 
-    //Apply Fast Frank
+    void* result = uPlayer_ctor(thisptr);
+    uPlayerInstance = thisptr;
+
+    sprintf_s(buf, "[HOOK] uPlayer ctor returned — result=%p, uPlayerInstance=%p", result, uPlayerInstance);
+    LogLine(buf);
+
     FastFrank::OnPlayerConstruct(thisptr);
 
-    //Initialise costume statew# machine obj
-    ClothingCheck::SetStateMachineObj(thisptr);
-
-    //Randomise starting outfit
-    if (RANDOMISE_STARTING_OUTFIT)
-        ApplyRandomStartingOutfit();
-    
-    char buf[128];
-    sprintf_s(buf, "[HOOK] uPlayer constructed at %p", uPlayerInstance);
+    sprintf_s(buf, "[HOOK] Calling SetStateMachineObj(%p)", thisptr);
     LogLine(buf);
-    
+    ClothingCheck::SetStateMachineObj(thisptr);
+    LogLine("[HOOK] SetStateMachineObj done");
+
+    if (RANDOMISE_STARTING_OUTFIT)
+    {
+        g_pendingStartingOutfit = true;
+        LogLine("[HOOK] g_pendingStartingOutfit = true");
+    }
+    else
+    {
+        LogLine("[HOOK] RANDOMISE_STARTING_OUTFIT is false — outfit skipped");
+    }
+
     return result;
 }
 

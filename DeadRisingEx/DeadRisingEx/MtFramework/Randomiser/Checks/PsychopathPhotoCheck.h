@@ -9,6 +9,7 @@ namespace PsychopathPhotoCheck
     void OnPsychopathPhotographed(uint32_t psychopathId, int totalCollected, int totalPsychopaths);
     void RegisterPsychopathScoop(void* npcObject, const char* scoopPath);
     bool IsKnownPsychopath(uint32_t psychopathId);
+    void OnAreaTransition();
     uint32_t GetPsychopathIdFromObject(void* npcObject);
     uint32_t GetPsychopathIdFromRuntimeId(uint32_t runtimeId);
 }

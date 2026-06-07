@@ -1,8 +1,11 @@
 #include "PPStickerCheck.h"
 #include "CheckSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/AreaTransitionHook.h"
+#include "DeadRisingEx/MtFramework/Randomiser/AreaKeySystem.h"
 #include "MtFramework/Utils/Utilities.h"
 #include <detours.h>
+#include <stdio.h>
 
 // ─────────────────────────────────────────────
 //  Addresses
@@ -84,13 +87,36 @@ void __stdcall Hook_StickerUpdate(int64_t* param_1)
 //  Callback
 // ─────────────────────────────────────────────
 
+static void LogStickerToFile(uint32_t photoId, uint32_t areaId, ZoneID zone)
+{
+    char path[MAX_PATH];
+    GetModuleFileNameA(NULL, path, MAX_PATH);
+    char* slash = strrchr(path, '\\');
+    if (slash) *(slash + 1) = 0;
+    strcat_s(path, MAX_PATH, "sticker_ids.txt");
+
+    FILE* f = nullptr;
+    fopen_s(&f, path, "a");
+    if (!f) return;
+
+    const char* zoneName = AreaKeySystem::GetZoneName(zone);
+    fprintf(f, "PhotoId=%-4u | AreaId=0x%03X | Zone=%s\n",
+        photoId, areaId, (zone == ZoneID::COUNT) ? "Unknown/Always Unlocked" : zoneName);
+    fclose(f);
+}
+
 void uPPStickerImpl::OnStickerCollected(void* stickerObject, uint32_t itemPhotoId,
                                          int totalCollected, int totalStickers)
 {
+    uint32_t areaId  = AreaTransitionHook::GetCurrentAreaId();
+    ZoneID   zone    = AreaKeySystem::ZoneFromAreaId(areaId);
+
     char buf[128];
-    sprintf_s(buf, "[STICKER] Collected PhotoId=%u | Progress: %d / %d",
-        itemPhotoId, totalCollected, totalStickers);
+    sprintf_s(buf, "[STICKER] PhotoId=%u | AreaId=0x%X | Zone=%s | Progress: %d/%d",
+        itemPhotoId, areaId, AreaKeySystem::GetZoneName(zone), totalCollected, totalStickers);
     LogLine(buf);
+
+    //LogStickerToFile(itemPhotoId, areaId, zone);
 
     CheckSystem::CompleteCheck(CheckType::PPSticker, itemPhotoId);
 }
