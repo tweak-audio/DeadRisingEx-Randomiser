@@ -258,13 +258,14 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             }
         });
 
-        CheckSystem::Initialize(); 
         TimeManager::Initialize();
-
         AreaKeySystem::Get().Init(0);
-        AreaTransitionHook::Install();    
+        CheckSystem::Initialize();
+        AreaTransitionHook::Install();
+
         // Initialize notification hook system (for displaying rewards)
         InitializeRewardNotifications();
+        //InitScoopPhotoHook();
 
         ForceSymbolsHelper();
         break;
@@ -273,7 +274,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     case DLL_THREAD_DETACH:
         break;
     case DLL_PROCESS_DETACH:
-        ShutdownRewardNotifications(); 
+        ShutdownRandomiserLog();
+        ShutdownRewardNotifications();
         break;
     }
     return TRUE;

@@ -3,9 +3,17 @@
 #include "Misc/AsmHelpers.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include "InputSystem.h"
+#include "Checks/SurvivorPhotoCheck.h"
+#include "Checks/PsychopathPhotoCheck.h"
 #include <MtFramework/Game/sSnatcherMain.h>
 #include <detours.h>
 #include <stdio.h>
+
+static void NotifyAreaTransition()
+{
+    SurvivorPhotoCheck::OnAreaTransition();
+    PsychopathPhotoCheck::OnAreaTransition();
+}
 
 AreaTransitionHook::FnAreaChange      AreaTransitionHook::s_originalAreaChange      = nullptr;
 AreaTransitionHook::FnTransitionStart AreaTransitionHook::s_originalTransitionStart = nullptr;
@@ -32,6 +40,11 @@ static void LogTransition(const char* msg)
     }
 }
 
+uint32_t AreaTransitionHook::GetCurrentAreaId()
+{
+    return s_previousArea;
+}
+
 void AreaTransitionHook::Install()
 {
     s_originalAreaChange      = reinterpret_cast<FnAreaChange>     (GetModuleAddress(0x1400628f0));
@@ -50,11 +63,11 @@ void AreaTransitionHook::Install()
     {
         char buf[64];
         snprintf(buf, sizeof(buf), "AreaTransitionHook: Install failed %d\n", err);
-        LogTransition(buf);
+        LogLine(buf);
     }
     else
     {
-        LogTransition("AreaTransitionHook: Installed successfully\n");
+        LogLine("AreaTransitionHook: Installed successfully\n");
     }
 }
 
@@ -65,7 +78,7 @@ void AreaTransitionHook::Install()
 
 void __fastcall AreaTransitionHook::Hook_TransitionStart(int64_t param_1)
 {
-    { static int n = 0; if (++n <= 3) LogTransition("TS"); }
+    { static int n = 0; if (++n <= 3) LogLine("TS"); }
 
     if (AreaKeySystem::Get().IsIntroComplete())
     {
@@ -80,7 +93,7 @@ void __fastcall AreaTransitionHook::Hook_TransitionStart(int64_t param_1)
                 *(uintptr_t*)(areaMgr + 0x38) = 0;
                 char buf[64];
                 snprintf(buf, sizeof(buf), "Hook_TransitionStart: BLOCKED 0x%x", dest);
-                LogTransition(buf);
+                LogLine(buf);
                 return;
             }
         }
@@ -111,17 +124,19 @@ void __fastcall AreaTransitionHook::Hook_AreaChange(int64_t param_1, uint32_t ar
         {
             AreaKeySystem::Get().SetIntroComplete(true);
             AreaKeySystem::Get().GiveKey(ZoneID::ParadisePlaza);
-            LogTransition("INTRO COMPLETE: key system now active, Paradise Plaza unlocked");
+            LogLine("INTRO COMPLETE: key system now active, Paradise Plaza unlocked");
         }
+        NotifyAreaTransition();
         s_previousArea = areaId;
         s_originalAreaChange(param_1, areaId);
-        LogTransition("AC_done");
+        LogLine("AC_done");
         return;
     }
 
     if (AreaKeySystem::Get().HasKey(areaId))
     {
         s_reloadInProgress = false;
+        NotifyAreaTransition();
         s_previousArea = areaId;
         s_originalAreaChange(param_1, areaId);
         return;
@@ -156,7 +171,7 @@ void __fastcall AreaTransitionHook::Hook_AreaChange(int64_t param_1, uint32_t ar
     char buf[64];
     snprintf(buf, sizeof(buf), "Hook_AreaChange: BLOCKED 0x%x -> reloading 0x%x",
         areaId, fallback);
-    LogTransition(buf);
+    LogLine(buf);
 
     s_cooldownFrom = s_previousArea;
     s_cooldownTo   = areaId;

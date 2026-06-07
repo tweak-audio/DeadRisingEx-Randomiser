@@ -18,12 +18,23 @@
 extern bool g_statsResolved;
 
 static HANDLE hRandomiserLog = INVALID_HANDLE_VALUE;
+static bool   g_logShuttingDown = false;
+
+void ShutdownRandomiserLog()
+{
+    g_logShuttingDown = true;
+    if (hRandomiserLog != INVALID_HANDLE_VALUE)
+    {
+        CloseHandle(hRandomiserLog);
+        hRandomiserLog = INVALID_HANDLE_VALUE;
+    }
+}
 
 void InitRandomiserLog()
 {
     CHAR sLogFilePath[MAX_PATH] = { 0 };
     snprintf(sLogFilePath, sizeof(sLogFilePath), "%s\\RandomiserDebug.txt", ModConfig::Instance()->GameDirectory);
-    hRandomiserLog = CreateFile(sLogFilePath, GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    hRandomiserLog = CreateFileA(sLogFilePath, GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 }
 
 void LogLine(const char* text)
@@ -32,11 +43,11 @@ void LogLine(const char* text)
     {
         DWORD bytesWritten = 0;
         WriteFile(hRandomiserLog, text, lstrlenA(text), &bytesWritten, NULL);
+        WriteFile(hRandomiserLog, "\r\n", 2, &bytesWritten, NULL);
         FlushFileBuffers(hRandomiserLog);
     }
 
-    // Only call ImGui if it's ready
-    if (ImGuiConsole::Instance() != nullptr)
+    if (!g_logShuttingDown)
         ImGuiConsole::Instance()->ConsolePrint(text);
 }
 
@@ -124,32 +135,34 @@ void HandleDebugInput()
     
     if (GetAsyncKeyState('1') & 1)
     {
-        AreaKeySystem::Get().GiveKey(ZoneID::LeisurePark);
+        for (int i = 0; i < static_cast<int>(ZoneID::COUNT); i++)
+            AreaKeySystem::Get().GiveKey(static_cast<ZoneID>(i));
+        LogLine("[DEBUG] All area keys granted");
     }
 
     if (GetAsyncKeyState('2') & 1)
     {
-        AreaKeySystem::Get().GiveKey(ZoneID::FoodCourt);
+        
     }
 
     if (GetAsyncKeyState('3') & 1)
     {
-        AreaKeySystem::Get().GiveKey(ZoneID::NorthPlaza);
+        
     }
 
     if (GetAsyncKeyState('4') & 1)
     {
-        AreaKeySystem::Get().GiveKey(ZoneID::WonderlandPlaza);
+        
     }
     
     if (GetAsyncKeyState('5') & 1)
     {
-        AreaKeySystem::Get().GiveKey(ZoneID::MaintenanceTunnel);
+        
     }
 
     if (GetAsyncKeyState('6') & 1)
     {
-        AreaKeySystem::Get().GiveKey(ZoneID::AlFrescaPlaza);
+        
     }
 
     if (GetAsyncKeyState('7') & 1)

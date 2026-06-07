@@ -188,11 +188,16 @@ static bool SpawnItemAtPosition(DWORD itemId, const Vector4& pos)
     sItemCtrl* ctrl = sItemCtrl::Instance();
     if (!ctrl) return false;
 
+    sResource* resMgr = sResource::Instance();
+    if (!resMgr) return false;
+
     ItemInfoEntry* info = &uItem::ItemInfoTable[itemId];
     if (!info || !info->ArchivePath || !info->ArchivePath[0])
         return false;
 
-    cResource* res = sResource::Instance()->LoadGameResource<cResource>(
+    // Pre-load the archive so assets not in this area are available.
+    // _SpawnItem handles full item init (including SetupItemProperties) internally.
+    cResource* res = resMgr->LoadGameResource<cResource>(
         rArchive::DebugTypeInfo,
         info->ArchivePath,
         RLF_SYNCHRONOUS | RLF_LOAD_AS_ARCHIVE
@@ -201,17 +206,12 @@ static bool SpawnItemAtPosition(DWORD itemId, const Vector4& pos)
     if (!res) return false;
 
     uItem* item = sItemCtrl::_SpawnItem(ctrl, itemId);
-    if (!item)
-    {
-        res->DecrementRefCount();
-        return false;
-    }
 
-    if (!item->SetupItemProperties())
-    {
-        res->DecrementRefCount();
-        return false;
-    }
+    // Release the manual archive ref regardless of spawn success —
+    // _SpawnItem holds its own ref while the item is live.
+    res->DecrementRefCount();
+
+    if (!item) return false;
 
     Vector4* itemPos = (Vector4*)((uint8_t*)item + 0x40);
     if (itemPos) *itemPos = pos;

@@ -5,7 +5,8 @@
 class AreaTransitionHook
 {
 public:
-    static void Install();
+    static void     Install();
+    static uint32_t GetCurrentAreaId();  // returns the last area Frank entered
 
 private:
     // FUN_14008fb70 (AreaHitProcess) not hooked — see Install() comment.
