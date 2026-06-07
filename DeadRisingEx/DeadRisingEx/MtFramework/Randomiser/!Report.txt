@@ -21,6 +21,12 @@ TODO:
     - add method for original dll to read code altering mods?
 
 TO IMPROVE:
+
+- if clothing reward (FIX!!!)
+- we dont need to include PP as a reward
+- improve key availability check, just found maintanance key in MT
+
+    - it resets after going through a loading zone
 - check if seed exists and seed generation seem to be the wrong way round
     - fix creating new seed everytime game loads
 
@@ -77,6 +83,16 @@ DONE:
 
 - hook clothing (DONE)
     - add to checks
+
+
+
+
+
+
+
+
+
+
 
 
 
