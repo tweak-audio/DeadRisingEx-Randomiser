@@ -117,8 +117,11 @@ void CheckSystem::GenerateRewardMap()
         batteries.push_back({ RewardType::BatteryRefill, 0 });
     for (int i = 0; i < TIME_CHUNK_REWARDS; i++)
         timeChunks.push_back({ RewardType::TimeChunk, i + 1 });
-    for (int i = 0; i < AREA_KEY_REWARDS; i++)
+    for (int i = 0; i < static_cast<int>(ZoneID::COUNT); i++)
+    {
+        if (i == static_cast<int>(ZoneID::ParadisePlaza)) continue;
         areaKeys.push_back({ RewardType::AreaKey, i });  // value = ZoneID index
+    }
 
     // Randomly split remaining slots between clothing and set items
     int remaining = total - LEVEL_UP_REWARDS - BATTERY_REFILL_REWARDS - TIME_CHUNK_REWARDS - AREA_KEY_REWARDS;

@@ -1,4 +1,4 @@
-TODO:
+### TODO: ###
 - add randomiser_config.file read system
     - add toggles to randomiser options
         - ranges of intensities???
@@ -20,20 +20,17 @@ TODO:
 - seperate randomiser mod from the original dll 
     - add method for original dll to read code altering mods?
 
-TO IMPROVE:
+### TO IMPROVE: ###
 
-- if clothing reward (FIX!!!)
-- we dont need to include PP as a reward
 - improve key availability check, just found maintanance key in MT
 
-    - it resets after going through a loading zone
-- check if seed exists and seed generation seem to be the wrong way round
-    - fix creating new seed everytime game loads
+- if clothing reward (FIX!!!)
+    - it resets after going through a loading zone (Fixed? needs testing)
 
 - Clean up debug code
 - Clean up testing code when releasing!!!!!!
 
-Ideas:
+### Ideas: ###
 
 - use games built in rng to affect randomiser seed generation????
 
@@ -61,6 +58,11 @@ Ideas:
 
 
 DONE:
+
+- we dont need to include PP as a reward (Fixed)
+
+- check if seed exists and seed generation seem to be the wrong way round (Fixed)
+    - fix creating new seed everytime game loads
 
 - transfer over to github (done)
     - connect to github

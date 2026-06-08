@@ -18,7 +18,7 @@ constexpr bool USE_6_HOUR_CHUNKS = true;  // Set to false for 12-hour chunks
 constexpr int TIME_CHUNK_REWARDS = USE_6_HOUR_CHUNKS ? 11 : 5;  // 11 for 6hr, 5 for 12hr
 constexpr int LEVEL_UP_REWARDS = 49;
 constexpr int BATTERY_REFILL_REWARDS = 10;
-constexpr int AREA_KEY_REWARDS = 12;  // One per zone (COUNT)
+constexpr int AREA_KEY_REWARDS = 11;  // One per zone (COUNT), excluding ParadisePlaza (auto-given)
 constexpr int CLOTHING_REWARDS_MIN = 30;
 
 constexpr int TOTAL_CHECKS = TOTAL_PPSTICKERS + TOTAL_SURVIVORS + TOTAL_PSYCHOPATHS + TOTAL_COSTUMES;
