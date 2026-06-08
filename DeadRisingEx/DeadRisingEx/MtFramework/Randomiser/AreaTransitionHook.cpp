@@ -1,5 +1,6 @@
 #include "AreaTransitionHook.h"
 #include "AreaKeySystem.h"
+#include "RandomiserConfig.h"
 #include "Misc/AsmHelpers.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include "InputSystem.h"
@@ -80,7 +81,7 @@ void __fastcall AreaTransitionHook::Hook_TransitionStart(int64_t param_1)
 {
     { static int n = 0; if (++n <= 3) LogLine("TS"); }
 
-    if (AreaKeySystem::Get().IsIntroComplete())
+    if (AreaKeySystem::Get().IsIntroComplete() && RandomiserConfig::Get().areaKeyRewards)
     {
         uintptr_t areaMgrPtr = reinterpret_cast<uintptr_t>(GetModuleAddress(0x141945f70));
         uintptr_t areaMgr    = areaMgrPtr ? *reinterpret_cast<uintptr_t*>(areaMgrPtr) : 0;
@@ -133,7 +134,7 @@ void __fastcall AreaTransitionHook::Hook_AreaChange(int64_t param_1, uint32_t ar
         return;
     }
 
-    if (AreaKeySystem::Get().HasKey(areaId))
+    if (!RandomiserConfig::Get().areaKeyRewards || AreaKeySystem::Get().HasKey(areaId))
     {
         s_reloadInProgress = false;
         NotifyAreaTransition();

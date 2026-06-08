@@ -3,6 +3,7 @@
 #include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/ChecksManager.h"
 #include "TimeChunkReward.h"
+#include "DeadRisingEx/MtFramework/Randomiser/RandomiserConfig.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include <stdio.h>
 
@@ -22,8 +23,9 @@ void TimeChunkReward::Initialize()
     
     LogLine("[TIME GATE] Initializing time chunk reward system");
     
-    // Set mode based on CheckSystem constant BEFORE loading save
-    s_chunkMode = USE_6_HOUR_CHUNKS ? TimeManager::ChunkSize::SIX_HOURS 
+    // Set mode from config BEFORE loading save
+    const RandomiserConfig& cfg = RandomiserConfig::Get();
+    s_chunkMode = cfg.sixHourChunks ? TimeManager::ChunkSize::SIX_HOURS
                                     : TimeManager::ChunkSize::TWELVE_HOURS;
     
     // Always unlock the first chunk so game can start
@@ -33,7 +35,7 @@ void TimeChunkReward::Initialize()
     LoadUnlockedChunksWithoutMode();  // New function that doesn't load mode
     
     s_initialized = true;
-    s_timeGatingEnabled = true;
+    s_timeGatingEnabled = cfg.timeChunks;
     
     char buf[128];
     sprintf_s(buf, "[TIME GATE] System initialized - Mode: %s chunks, Time gating %s", 

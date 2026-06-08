@@ -34,7 +34,7 @@
 
 - use games built in rng to affect randomiser seed generation????
 
-- hook items
+- hook item pickup (individual items on the floor)?
     - add to checks
 
 -randomise maintanance key? other blue items?
@@ -55,6 +55,10 @@
     - Spawn zombies
 
 - Consuming each food check??
+
+- level up as checks
+    - alternative to level up rewards system
+    - could split stat upgrades into rewards?
 
 
 DONE:

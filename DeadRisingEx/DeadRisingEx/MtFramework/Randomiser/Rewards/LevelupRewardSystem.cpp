@@ -1,6 +1,7 @@
 #include "LevelUpRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/RandomiserConfig.h"
 
 #include "detours.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
@@ -198,9 +199,11 @@ void __fastcall Hook_LevelUpCallback(void* param_1)
         sprintf_s(buf, sizeof(buf), "[HOOK] Stats captured via callback: %p", param_1);
         LogLine(buf);
 
-        uPlayerImpl::SetFastFrank(true);
+        if (RandomiserConfig::Get().fastFrank)
+            uPlayerImpl::SetFastFrank(true);
         originalLevelUpCallback(param_1);
-        uPlayerImpl::ApplyFastFrank(param_1);
+        if (RandomiserConfig::Get().fastFrank)
+            uPlayerImpl::ApplyFastFrank(param_1);
         ProcessPendingRewards();
         return;
     }
@@ -212,7 +215,8 @@ void __fastcall Hook_LevelUpCallback(void* param_1)
     }
 
     originalLevelUpCallback(param_1);
-    uPlayerImpl::ApplyFastFrank(param_1);
+    if (RandomiserConfig::Get().fastFrank)
+        uPlayerImpl::ApplyFastFrank(param_1);
 }
 
 // ─────────────────────────────────────────────

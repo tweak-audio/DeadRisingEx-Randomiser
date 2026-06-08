@@ -48,6 +48,8 @@
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/SurvivorPhotoCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/PsychopathPhotoCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/PhotoProcessHook.h"
+
+void RegisterRandomiserConsoleCommands();
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/ClothingCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/SetItemRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/LevelUpRewardSystem.h"
@@ -171,6 +173,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         sSnatcherMainImpl::RegisterTypeInfo();
         MtHeapAllocatorImpl::RegisterTypeInfo();
         ImGuiRenderer::RegisterTypeInfo();
+        RegisterRandomiserConsoleCommands();
 
         if (ModConfig::Instance()->RecursiveGrenade == true)
             uOm08Impl::RegisterTypeInfo();

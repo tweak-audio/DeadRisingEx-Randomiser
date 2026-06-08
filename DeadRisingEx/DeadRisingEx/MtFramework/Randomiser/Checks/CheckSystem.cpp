@@ -7,6 +7,7 @@
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/TimeChunkReward.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/ClothingRewardSystem.h"
 #include "ChecksManager.h"
+#include "DeadRisingEx/MtFramework/Randomiser/RandomiserConfig.h"
 
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include <vector>
@@ -110,29 +111,39 @@ void CheckSystem::GenerateRewardMap()
     RngSeed(s_seed);
 
     // Fixed rewards
+    const RandomiserConfig& cfg = RandomiserConfig::Get();
     std::vector<Reward> levelUps, batteries, timeChunks, areaKeys;
     for (int i = 0; i < LEVEL_UP_REWARDS; i++)
         levelUps.push_back({ RewardType::LevelUp, 0 });
     for (int i = 0; i < BATTERY_REFILL_REWARDS; i++)
         batteries.push_back({ RewardType::BatteryRefill, 0 });
-    for (int i = 0; i < TIME_CHUNK_REWARDS; i++)
-        timeChunks.push_back({ RewardType::TimeChunk, i + 1 });
-    for (int i = 0; i < static_cast<int>(ZoneID::COUNT); i++)
+    if (cfg.timeChunks)
     {
-        if (i == static_cast<int>(ZoneID::ParadisePlaza)) continue;
-        areaKeys.push_back({ RewardType::AreaKey, i });  // value = ZoneID index
+        int chunkCount = cfg.sixHourChunks ? 11 : 5;
+        for (int i = 0; i < chunkCount; i++)
+            timeChunks.push_back({ RewardType::TimeChunk, i + 1 });
+    }
+    if (cfg.areaKeyRewards)
+    {
+        for (int i = 0; i < static_cast<int>(ZoneID::COUNT); i++)
+        {
+            if (i == static_cast<int>(ZoneID::ParadisePlaza)) continue;
+            areaKeys.push_back({ RewardType::AreaKey, i });  // value = ZoneID index
+        }
     }
 
     // Randomly split remaining slots between clothing and set items
-    int remaining = total - LEVEL_UP_REWARDS - BATTERY_REFILL_REWARDS - TIME_CHUNK_REWARDS - AREA_KEY_REWARDS;
+    int effectiveTimeChunkRewards = cfg.timeChunks ? (cfg.sixHourChunks ? 11 : 5) : 0;
+    int effectiveAreaKeyRewards   = cfg.areaKeyRewards ? AREA_KEY_REWARDS : 0;
+    int remaining = total - LEVEL_UP_REWARDS - BATTERY_REFILL_REWARDS - effectiveTimeChunkRewards - effectiveAreaKeyRewards;
     int maxClothing = min(remaining, COSTUME_POOL_SIZE);  // can't exceed pool size
     int clothingCount = RngRange(CLOTHING_REWARDS_MIN, maxClothing + 1);
     int setItemCount  = remaining - clothingCount;
-    s_setItemCount = setItemCount; 
+    s_setItemCount = setItemCount;
 
     char buf[128];
-    sprintf_s(buf, "[CHECKS] Reward split: %d area keys, %d clothing, %d set items (seed %u)",
-              AREA_KEY_REWARDS, clothingCount, setItemCount, s_seed);
+    sprintf_s(buf, "[CHECKS] Reward split: %d time chunks, %d area keys, %d clothing, %d set items (seed %u)",
+              effectiveTimeChunkRewards, effectiveAreaKeyRewards, clothingCount, setItemCount, s_seed);
     LogLine(buf);
 
     std::vector<Reward> clothing, setItems;
@@ -601,11 +612,17 @@ void CheckSystem::Initialize()
     TimeChunkReward::Initialize();
     
     // Register all check ranges BEFORE building check list
+    const RandomiserConfig& cfg = RandomiserConfig::Get();
 
     //Photosanity
-        // PP Stickers 
+    if (cfg.EffectivePPSticker())
+    {
+        // PP Stickers
         RegisterCheckRange(CheckType::PPSticker, 128, 227);
+    }
 
+    if (cfg.EffectiveSurvivorPhoto())
+    {
         // Survivors - register only the ranges you have
         RegisterCheckRange(CheckType::SurvivorPhoto, 0x4D0, 0x4EB);  // 0x4D0-0x4EB (no 0x4EC)
         RegisterCheckRange(CheckType::SurvivorPhoto, 0x4ED, 0x4F1);  // 0x4ED-0x4F1 (skip 0x4EC)
@@ -620,14 +637,19 @@ void CheckSystem::Initialize()
         RegisterCheckRange(CheckType::SurvivorPhoto, 0x550, 0x556);  // 0x550-0x556
         RegisterCheckRange(CheckType::SurvivorPhoto, 0x560, 0x568);  // 0x560-0x568
         RegisterCheckRange(CheckType::SurvivorPhoto, 0x56C, 0x56C);  // 0x56C only
+    }
 
+    if (cfg.EffectivePsychopathPhoto())
+    {
         // Psychopaths - register only what you have (no 0x6E1)
         RegisterCheckRange(CheckType::PsychopathPhoto, 0x6D4, 0x6DB);  // Kent through Jo
         RegisterCheckRange(CheckType::PsychopathPhoto, 0x6DC, 0x6DF);  // Convicts + Cletus
         RegisterCheckRange(CheckType::PsychopathPhoto, 0x6E3, 0x6E3);  // Carlito
         RegisterCheckRange(CheckType::PsychopathPhoto, 0x6E6, 0x6E9);  // Isabella + Hall Family (no 0x6E1)
+    }
 
-    //Pickups
+    if (cfg.clothingChecks)
+    {
         // Clothing pickups — 66 world checks (achievement unlocks excluded)
         RegisterCheckRange(CheckType::Clothing,  0,  26);   // slot 0: cos000-cos026
         RegisterCheckRange(CheckType::Clothing, 28,  33);   // slot 0: cos028-cos033
@@ -642,7 +664,8 @@ void CheckSystem::Initialize()
         RegisterCheckRange(CheckType::Clothing, 304, 304);  // slot 3: cos304
         RegisterCheckRange(CheckType::Clothing, 306, 306);  // slot 3: cos306
         RegisterCheckRange(CheckType::Clothing, 310, 310);  // slot 3: cos310
-        
+    }
+
     // Build the check list from registered ranges
     RebuildCheckList();
     
@@ -650,7 +673,15 @@ void CheckSystem::Initialize()
     CheckAvailability::Initialize();
     
     // Load or generate seed
-    if (!LoadSeedFromFile())
+    if (cfg.customSeed != 0)
+    {
+        // Fixed seed from config — always wins over saved seed
+        SetSeed(cfg.customSeed);
+        char buf[64];
+        sprintf_s(buf, "[CHECKS] Using config seed: %u", cfg.customSeed);
+        LogLine(buf);
+    }
+    else if (!LoadSeedFromFile())
     {
         LogLine("[CHECKS] No saved seed found - generating new beatable seed");
         GenerateBeatableSeed();

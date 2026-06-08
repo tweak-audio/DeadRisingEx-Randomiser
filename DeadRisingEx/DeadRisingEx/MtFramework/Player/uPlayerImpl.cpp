@@ -13,6 +13,7 @@
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/CaseCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/FastFrank.h"
+#include "DeadRisingEx/MtFramework/Randomiser/RandomiserConfig.h"
 
 // ═══════════════════════════════════════════
 //  GLOBAL POINTERS
@@ -116,14 +117,14 @@ void* __stdcall Hook_uPlayer_ctor(void* thisptr)
     ClothingCheck::SetStateMachineObj(thisptr);
     LogLine("[HOOK] SetStateMachineObj done");
 
-    if (RANDOMISE_STARTING_OUTFIT)
+    if (RandomiserConfig::Get().randomiseStartingOutfit)
     {
         g_pendingStartingOutfit = true;
         LogLine("[HOOK] g_pendingStartingOutfit = true");
     }
     else
     {
-        LogLine("[HOOK] RANDOMISE_STARTING_OUTFIT is false — outfit skipped");
+        LogLine("[HOOK] randomiseStartingOutfit is false — outfit skipped");
     }
 
     return result;

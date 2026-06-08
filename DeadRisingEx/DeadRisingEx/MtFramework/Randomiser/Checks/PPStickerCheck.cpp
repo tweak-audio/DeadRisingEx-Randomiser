@@ -3,6 +3,7 @@
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/AreaTransitionHook.h"
 #include "DeadRisingEx/MtFramework/Randomiser/AreaKeySystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/RandomiserConfig.h"
 #include "MtFramework/Utils/Utilities.h"
 #include <detours.h>
 #include <stdio.h>
@@ -118,7 +119,8 @@ void uPPStickerImpl::OnStickerCollected(void* stickerObject, uint32_t itemPhotoI
 
     //LogStickerToFile(itemPhotoId, areaId, zone);
 
-    CheckSystem::CompleteCheck(CheckType::PPSticker, itemPhotoId);
+    if (RandomiserConfig::Get().EffectivePPSticker())
+        CheckSystem::CompleteCheck(CheckType::PPSticker, itemPhotoId);
 }
 
 // ─────────────────────────────────────────────

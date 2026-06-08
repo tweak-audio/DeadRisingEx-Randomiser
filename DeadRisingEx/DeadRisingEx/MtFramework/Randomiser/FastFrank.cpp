@@ -6,6 +6,7 @@
 #include "InputSystem.h"
 #include "detours.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
+#include "DeadRisingEx/MtFramework/Randomiser/RandomiserConfig.h"
 
 // External references
 extern void* uPlayerInstance;
@@ -48,6 +49,10 @@ void* FastFrank::Hook_SetRunLevel(void* thisptr, int level)
 
 void FastFrank::InitializeHooks()
 {
+    const RandomiserConfig& cfg = RandomiserConfig::Get();
+    s_fastFrankEnabled    = cfg.fastFrank;
+    s_fastFrankSpeedLevel = cfg.fastFrankSpeed;
+
     DetourAttach((void**)&originalSetRunLevel, Hook_SetRunLevel);
     LogLine("[FAST FRANK] Hooks initialized");
 }
@@ -130,17 +135,16 @@ void FastFrank::ApplyToStatsObject(void* statsObject)
 
 void FastFrank::OnPlayerConstruct(void* playerInstance)
 {
-    // Enable fast_frank for all new games
-    s_fastFrankEnabled = true;
-    
-    // Directly write the speed level to the stats object
+    if (!s_fastFrankEnabled)
+        return;
+
     __try
     {
         byte* runLevelPtr = (byte*)playerInstance + 0x78;
         *runLevelPtr = (byte)s_fastFrankSpeedLevel;
-        
+
         char buf[128];
-        sprintf_s(buf, "[FAST FRANK] Set initial run level to %d in constructor", 
+        sprintf_s(buf, "[FAST FRANK] Set initial run level to %d in constructor",
             s_fastFrankSpeedLevel);
         LogLine(buf);
     }

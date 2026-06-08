@@ -1,11 +1,12 @@
 #include "PhotoProcessHook.h"
-//#include "PhotoIDLogger.h" 
+//#include "PhotoIDLogger.h"
 #include "PPStickerCheck.h"
 #include "SurvivorPhotoCheck.h"
 #include "PsychopathPhotoCheck.h"
 #include "CheckSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
+#include "DeadRisingEx/MtFramework/Randomiser/RandomiserConfig.h"
 
 #include "MtFramework/Utils/Utilities.h"
 #include <detours.h>
@@ -26,11 +27,12 @@ void __fastcall Hook_PhotoAward(void* param_1, uint16_t subjectId, int basePP, i
     __try
     {
         //PhotoIDLogger::LogPhotoSubject(subjectId, basePP, multiplier);
-        
+        const RandomiserConfig& cfg = RandomiserConfig::Get();
+
         // Check if this is a PP sticker
         if (subjectId >= 0x80 && subjectId <= 0xE3)
         {
-            if (CheckSystem::IsReady())
+            if (cfg.EffectivePPSticker() && CheckSystem::IsReady())
                 CheckSystem::CompleteCheck(CheckType::PPSticker, subjectId);
         }
 
@@ -41,22 +43,22 @@ void __fastcall Hook_PhotoAward(void* param_1, uint16_t subjectId, int basePP, i
             if (entityId != 0)
             {
                 char buf[256];
-                
+
                 // Check if it's a psychopath (0x6D0-0x6E9) or survivor (0x4D0-0x56C)
                 if (entityId >= 0x6D0 && entityId <= 0x6E9)
                 {
-                    sprintf_s(buf, "[PHOTO AWARD] *** Psychopath PhotoID 0x%04X → PsychopathID 0x%X ***", 
+                    sprintf_s(buf, "[PHOTO AWARD] *** Psychopath PhotoID 0x%04X → PsychopathID 0x%X ***",
                         subjectId, entityId);
                     LogLine(buf);
-                    if (CheckSystem::IsReady())
+                    if (cfg.EffectivePsychopathPhoto() && CheckSystem::IsReady())
                         CheckSystem::CompleteCheck(CheckType::PsychopathPhoto, entityId);
                 }
                 else if (entityId >= 0x4D0 && entityId <= 0x56C)
                 {
-                    sprintf_s(buf, "[PHOTO AWARD] *** Survivor PhotoID 0x%04X → SurvivorID 0x%X ***", 
+                    sprintf_s(buf, "[PHOTO AWARD] *** Survivor PhotoID 0x%04X → SurvivorID 0x%X ***",
                         subjectId, entityId);
                     LogLine(buf);
-                    if (CheckSystem::IsReady())
+                    if (cfg.EffectiveSurvivorPhoto() && CheckSystem::IsReady())
                         CheckSystem::CompleteCheck(CheckType::SurvivorPhoto, entityId);
                 }
             }
