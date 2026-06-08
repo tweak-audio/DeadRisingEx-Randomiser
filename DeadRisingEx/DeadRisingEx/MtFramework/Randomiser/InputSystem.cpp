@@ -180,13 +180,9 @@ void HandleDebugInput()
         
     }
 
-    // '0' — generate a random seed instantly
     if (GetAsyncKeyState('0') & 1)
     {
-        //CheckSystem::GenerateBeatableSeed();
-        char buf[64];
-        sprintf_s(buf, "[SEED] Beatable seed generated: %u", CheckSystem::GetSeed());
-        LogLine(buf);
+
     }
 
     // ═══════════════════════════════════════════
@@ -199,7 +195,7 @@ void HandleDebugInput()
         char buf[128];
         sprintf_s(buf, "[TIME] +1 hour (was: %s)", TimeManager::GetTimeString().c_str());
         LogLine(buf);
-        TimeManager::AddHours(1);
+        //TimeManager::AddHours(1);
         sprintf_s(buf, "[TIME] Now: %s", TimeManager::GetTimeString().c_str());
         LogLine(buf);
     }
@@ -210,7 +206,7 @@ void HandleDebugInput()
         char buf[128];
         sprintf_s(buf, "[TIME] -1 hour (was: %s)", TimeManager::GetTimeString().c_str());
         LogLine(buf);
-        TimeManager::AddHours(-1);
+        //TimeManager::AddHours(-1);
         sprintf_s(buf, "[TIME] Now: %s", TimeManager::GetTimeString().c_str());
         LogLine(buf);
     }
@@ -222,15 +218,13 @@ void HandleDebugInput()
         TimeManager::PrintDebugInfo();
     }
 
-    // F4 - Set time to 6:00 AM (early morning)
     if (GetAsyncKeyState(VK_F4) & 1)
     {
         
     }
 
-    // F5 - Freeze/Unfreeze time
     if (GetAsyncKeyState(VK_F5) & 1)
     {
-        SpawnNextRewardSlotNearPlayer();
+
     }
 }

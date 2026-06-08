@@ -5,6 +5,8 @@
 #include "MtFramework/Game/sMain.h"
 #include "ClothingCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/CheckSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/CheckAvailability.h"
+#include "DeadRisingEx/MtFramework/Randomiser/AreaKeySystem.h"
 #include "../InputSystem.h"
 #include "../AreaTransitionHook.h"
 
@@ -68,19 +70,36 @@ namespace ClothingCheck
 
     void __fastcall Hook_CostumePickup(void* player, void* costumeItem)
     {
-        uint8_t slot    = *(uint8_t*)((uintptr_t)costumeItem + 0x708);
-        uint8_t id      = *(uint8_t*)((uintptr_t)costumeItem + 0x70c);
-        int     checkId = slot * 100 + id;
+        uint8_t  slot      = *(uint8_t*)((uintptr_t)costumeItem + 0x708);
+        uint8_t  id        = *(uint8_t*)((uintptr_t)costumeItem + 0x70c);
+        uint32_t costumeId = (uint32_t)(slot * 100 + id);
+        ZoneID   zone      = AreaKeySystem::ZoneFromAreaId(AreaTransitionHook::GetCurrentAreaId());
 
-        LogCostume(slot, id, checkId);
+        LogCostume(slot, id, (int)costumeId);
 
-        if (!IsAchievementCostume(checkId))
+        if (!IsAchievementCostume((int)costumeId))
         {
-            char buf[64];
-            sprintf_s(buf, "[COSTUME] slot=%d id=%d checkId=%d", slot, id, checkId);
+            uint32_t checkId = 0;
+            const std::vector<uint32_t>* checks = CheckAvailability::GetClothingCheckIds(costumeId, zone);
+            if (checks)
+            {
+                for (uint32_t cid : *checks)
+                {
+                    if (!CheckSystem::IsCompleted(CheckType::Clothing, cid))
+                    {
+                        checkId = cid;
+                        break;
+                    }
+                }
+            }
+
+            char buf[96];
+            sprintf_s(buf, "[COSTUME] slot=%d id=%d costumeId=%d zone=%d checkId=%d",
+                      slot, id, costumeId, (int)zone, checkId);
             LogLine(buf);
 
-            CheckSystem::CompleteCheck(CheckType::Clothing, (uint32_t)checkId);
+            if (checkId != 0)
+                CheckSystem::CompleteCheck(CheckType::Clothing, checkId);
             return;
         }
 

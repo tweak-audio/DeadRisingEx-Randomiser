@@ -60,6 +60,13 @@ static const char* GetRewardText(RewardType type, const char* rewardName, int va
                 return "ITEM UNLOCKED!";
             return s_buf;
 
+        case RewardType::Clothing:
+            if (rewardName && *rewardName)
+                sprintf_s(s_buf, sizeof(s_buf), "CLOTHING: %s", rewardName);
+            else
+                return "CLOTHING REWARD!";
+            return s_buf;
+
         case RewardType::AreaKey:
         {
             const char* zoneName = AreaKeySystem::GetZoneName(static_cast<ZoneID>(value));

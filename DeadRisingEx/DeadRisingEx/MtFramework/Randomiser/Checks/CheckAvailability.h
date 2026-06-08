@@ -3,6 +3,7 @@
 #include "DeadRisingEx/MtFramework/Randomiser/TimeManager.h"
 #include "DeadRisingEx/MtFramework/Randomiser/AreaKeySystem.h"
 #include <unordered_map>
+#include <vector>
 
 struct CheckAvailabilityInfo
 {
@@ -18,9 +19,11 @@ public:
     static void Initialize();
     static uint32_t GetEarliestTime(CheckId check);
     static ZoneID   GetRequiredZone(CheckId check);
-    static bool IsAvailableAt(CheckId check, uint32_t time);
-
+    static bool     IsAvailableAt(CheckId check, uint32_t time);
     static std::string GetCheckName(CheckId check);
+
+    static const std::vector<uint32_t>* GetClothingCheckIds(uint32_t costumeId, ZoneID zone);
+    static uint32_t GetClothingCheckCount();
 
 private:
     static std::unordered_map<CheckId, CheckAvailabilityInfo, CheckIdHash> s_availabilityDB;
@@ -29,4 +32,5 @@ private:
     static void RegisterSurvivorTimes();
     static void RegisterPsychopathTimes();
     static void RegisterClothingTimes();
+    static void BuildClothingLookup();
 };

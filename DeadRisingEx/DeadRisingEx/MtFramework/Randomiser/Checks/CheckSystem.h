@@ -111,6 +111,7 @@ public:
 
     static void RegisterCheckRange(CheckType type, uint32_t idMin, uint32_t idMax);
     static void CompleteCheck(CheckType type, uint32_t id);
+    static bool IsCompleted(CheckType type, uint32_t id);
     static void OnCheckCompleted(CheckCallback callback);
 
     static int GetSetItemCount();

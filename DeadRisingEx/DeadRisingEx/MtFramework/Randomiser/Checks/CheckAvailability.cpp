@@ -10,9 +10,10 @@ This is so the randomizer can have logic
 std::unordered_map<CheckId, CheckAvailabilityInfo, CheckIdHash> CheckAvailability::s_availabilityDB;
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Shared table entry — used for PP stickers and clothing.
-//  notes format: "Name - Store/Location, Zone"
-//  GetCheckName() returns everything before the first " - ".
+//  Shared table entry — used for PP stickers, survivors, psychopaths, clothing.
+//  PP stickers/survivors/psychopaths notes: "Name - Store/Location, Zone"
+//  Clothing notes: "Costume Name" only (no shop suffix).
+//  GetCheckName() returns everything before the first " - ", or the full string.
 // ─────────────────────────────────────────────────────────────────────────────
 struct LocationEntry
 {
@@ -29,6 +30,7 @@ void CheckAvailability::Initialize()
     RegisterSurvivorTimes();
     RegisterPsychopathTimes();
     RegisterClothingTimes();
+    BuildClothingLookup();
 
     char buf[128];
     sprintf_s(buf, "[AVAILABILITY] Registered %d checks", (int)s_availabilityDB.size());
@@ -429,92 +431,160 @@ void CheckAvailability::RegisterPsychopathTimes()
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Clothing table
-//  checkId = slot * 100 + id  (matches ClothingCheck.cpp formula)
-//  Fill in "Costume Name - Store, Zone" and the correct ZoneID per item.
+//  checkId  = unique sequential location ID (1-N), one per physical store slot
+//  costumeId = slot * 100 + id  (game-native value from the pickup hook)
+//  areaId    = game's internal area/store ID (0 = unknown, populate from costume_log.txt)
 //  Slot 0 = outfit, Slot 1 = shoes, Slot 2 = head, Slot 3 = accessory
 // ─────────────────────────────────────────────────────────────────────────────
-static const LocationEntry kClothingDB[] =
+struct ClothingEntry
 {
-    // ── Slot 0 — Outfits (checkId = id) ─────────────────────────────────────
-    {   0,  ZoneID::COUNT,   "Outfit 0 - TODO"   },
-    {   1,  ZoneID::COUNT,   "Outfit 1 - TODO"   },
-    {   2,  ZoneID::COUNT,   "Outfit 2 - TODO"   },
-    {   3,  ZoneID::COUNT,   "Outfit 3 - TODO"   },
-    {   4,  ZoneID::COUNT,   "Outfit 4 - TODO"   },
-    {   5,  ZoneID::COUNT,   "Outfit 5 - TODO"   },
-    {   6,  ZoneID::COUNT,   "Outfit 6 - TODO"   },
-    {   7,  ZoneID::COUNT,   "Outfit 7 - TODO"   },
-    {   8,  ZoneID::COUNT,   "Outfit 8 - TODO"   },
-    {   9,  ZoneID::COUNT,   "Outfit 9 - TODO"   },
-    {  10,  ZoneID::COUNT,   "Outfit 10 - TODO"  },
-    {  11,  ZoneID::COUNT,   "Outfit 11 - TODO"  },
-    {  12,  ZoneID::COUNT,   "Outfit 12 - TODO"  },
-    {  13,  ZoneID::COUNT,   "Outfit 13 - TODO"  },
-    {  14,  ZoneID::COUNT,   "Outfit 14 - TODO"  },
-    {  15,  ZoneID::COUNT,   "Outfit 15 - TODO"  },
-    {  16,  ZoneID::COUNT,   "Outfit 16 - TODO"  },
-    {  17,  ZoneID::COUNT,   "Outfit 17 - TODO"  },
-    {  18,  ZoneID::COUNT,   "Outfit 18 - TODO"  },
-    {  19,  ZoneID::COUNT,   "Outfit 19 - TODO"  },
-    {  20,  ZoneID::COUNT,   "Outfit 20 - TODO"  },
-    {  21,  ZoneID::COUNT,   "Outfit 21 - TODO"  },
-    {  22,  ZoneID::COUNT,   "Outfit 22 - TODO"  },
-    {  23,  ZoneID::COUNT,   "Outfit 23 - TODO"  },
-    {  24,  ZoneID::COUNT,   "Outfit 24 - TODO"  },
-    {  25,  ZoneID::COUNT,   "Outfit 25 - TODO"  },
-    {  26,  ZoneID::COUNT,   "Outfit 26 - TODO"  },
-    {  28,  ZoneID::COUNT,   "Outfit 28 - TODO"  },
-    {  29,  ZoneID::COUNT,   "Outfit 29 - TODO"  },
-    {  30,  ZoneID::COUNT,   "Outfit 30 - TODO"  },
-    {  31,  ZoneID::COUNT,   "Outfit 31 - TODO"  },
-    {  32,  ZoneID::COUNT,   "Outfit 32 - TODO"  },
-    {  33,  ZoneID::COUNT,   "Outfit 33 - TODO"  },
-    {  38,  ZoneID::COUNT,   "Outfit 38 - TODO"  },
-    {  40,  ZoneID::COUNT,   "Outfit 40 - TODO"  },
-    {  41,  ZoneID::COUNT,   "Outfit 41 - TODO"  },
-    {  42,  ZoneID::COUNT,   "Outfit 42 - TODO"  },
+    uint32_t    checkId;    // unique location ID
+    uint32_t    costumeId;  // slot * 100 + id
+    ZoneID      zone;
+    const char* notes;
+};
 
-    // ── Slot 1 — Shoes (checkId = 100 + id) ─────────────────────────────────
-    { 100,  ZoneID::COUNT,   "Shoes 100 - TODO"  },
-    { 101,  ZoneID::COUNT,   "Shoes 101 - TODO"  },
-    { 102,  ZoneID::COUNT,   "Shoes 102 - TODO"  },
-    { 103,  ZoneID::COUNT,   "Shoes 103 - TODO"  },
-    { 104,  ZoneID::COUNT,   "Shoes 104 - TODO"  },
-    { 105,  ZoneID::COUNT,   "Shoes 105 - TODO"  },
-    { 106,  ZoneID::COUNT,   "Shoes 106 - TODO"  },
-    { 107,  ZoneID::COUNT,   "Shoes 107 - TODO"  },
-    { 108,  ZoneID::COUNT,   "Shoes 108 - TODO"  },
-    { 109,  ZoneID::COUNT,   "Shoes 109 - TODO"  },
+static const ClothingEntry kClothingDB[] =
+{
+    // checkId  costumeId  zone                   notes
+    // ── Slot 0 — Outfits ────────────────────────────────────────────────────
+    {  1,   2,  ZoneID::EntrancePlaza,    "Brown Jacket with Fur Trim Tan Shirt and Black Pants"   },
+    {  2,   3,  ZoneID::EntrancePlaza,    "Black and White Sleeveless Sports Top with Black and Grey Shorts"   },
+    {  3,   3,  ZoneID::ParadisePlaza,    "Black and White Sleeveless Sports Top with Black and Grey Shorts"   },
+    {  4,   4,  ZoneID::EntrancePlaza,    "Red and White Sleeveless Shirt with Red and Black Checkered Shorts"   },
+    {  5,   5,  ZoneID::EntrancePlaza,    "White Dress Shirt, Black Tie, and Grey Dress Pants"   },
+    {  6,   5,  ZoneID::ParadisePlaza,    "White Dress Shirt, Black Tie, and Grey Dress Pants"   },
+    {  7,   6,  ZoneID::EntrancePlaza,    "Black and Brown Checkered Dress Shirt, Black Tie, and Striped Pants"   },
+    {  8,   7,  ZoneID::EntrancePlaza,    "Grey Business Suit with Striped Tie"   },
+    {  9,   8,  ZoneID::EntrancePlaza,    "White Business Suit and Striped Tie"   },
+    { 10,   9,  ZoneID::WonderlandPlaza,  "Yellow Suit with Yellow Striped Tie"   },
+    { 11,  10,  ZoneID::EntrancePlaza,    "White Skirt"   },
+    { 12,  11,  ZoneID::EntrancePlaza,    "Black Skirt"   },
+    { 13,  11,  ZoneID::WonderlandPlaza,  "Black Skirt"   },
+    { 14,  12,  ZoneID::AlFrescaPlaza,    "Pink Skirt"   },
+    { 15,  13,  ZoneID::EntrancePlaza,    "Purple Dress"   },
+    { 16,  14,  ZoneID::EntrancePlaza,    "White Teddy"   },
+    { 17,  15,  ZoneID::EntrancePlaza,    "Black Sundress with Red Roses"   },
+    { 18,  15,  ZoneID::EntrancePlaza,    "Black Sundress with Red Roses"   },
+    { 19,  15,  ZoneID::WonderlandPlaza,  "Black Sundress with Red Roses"   },
+    { 20,  16,  ZoneID::EntrancePlaza,    "Blue and White Flowery Dress"   },
+    { 21,  16,  ZoneID::WonderlandPlaza,  "Blue and White Flowery Dress"   },
+    { 22,  17,  ZoneID::EntrancePlaza,    "Red and Grey Ratman T-shirt with Brown Shorts"   },
+    { 23,  17,  ZoneID::ParadisePlaza,    "Red and Grey Ratman T-shirt with Brown Shorts"   },
+    { 24,  18,  ZoneID::EntrancePlaza,    "Green Ratman T-shirt and Blue Jean Shorts"   },
+    { 25,  18,  ZoneID::ParadisePlaza,    "Green Ratman T-shirt and Blue Jean Shorts"   },
+    { 26,  19,  ZoneID::WonderlandPlaza,  "Pink and Black Striped T-shirt with Pink Jean Shorts"   },
+    { 27,  20,  ZoneID::WonderlandPlaza,  "Blue T-shirt with White Stars and Red Shorts"   },
+    { 28,  21,  ZoneID::COUNT,            "Miami Nights Outfit"   },
+    { 29,  22,  ZoneID::COUNT,            "Casual Outfit"   },
+    { 30,  23,  ZoneID::EntrancePlaza,    "USA Track Outfit"   },
+    { 31,  24,  ZoneID::EntrancePlaza,    "Black and White Spandex Track Suit"   },
+    { 32,  24,  ZoneID::WonderlandPlaza,  "Black and White Spandex Track Suit"   },
+    { 33,  25,  ZoneID::EntrancePlaza,    "Tan Camouflage Vest with Dark Brown Shorts"   },
+    { 34,  26,  ZoneID::WonderlandPlaza,  "Blue Vest with Tan Shorts"   },
+    { 35,  28,  ZoneID::COUNT,            "Weekender Outfit"   },
+    { 36,  29,  ZoneID::COUNT,            "Man in Black Outfit"   },
+    { 37,  30,  ZoneID::COUNT,            "Strike Outfit"   },
+    { 38,  31,  ZoneID::COUNT,            "Accountant Outfit"   },
+    { 39,  33,  ZoneID::COUNT,            "Pink Paparazzi Outfit"   },
+    { 40,  34,  ZoneID::COUNT,            "Grandpa Outfit"   },
+    { 41,  38,  ZoneID::COUNT,            "Burgundy Wine Outfit"   },
+    { 42,  39,  ZoneID::COUNT,            "Cold Hearted Snake Outfit"   },
+    { 43,  40,  ZoneID::COUNT,            "Pure White Outfit"   },
 
-    // ── Slot 2 — Head (checkId = 200 + id) ──────────────────────────────────
-    { 202,  ZoneID::COUNT,   "Hat 202 - TODO"    },
-    { 203,  ZoneID::COUNT,   "Hat 203 - TODO"    },
-    { 204,  ZoneID::COUNT,   "Hat 204 - TODO"    },
-    { 205,  ZoneID::COUNT,   "Hat 205 - TODO"    },
-    { 207,  ZoneID::COUNT,   "Hat 207 - TODO"    },
-    { 208,  ZoneID::COUNT,   "Hat 208 - TODO"    },
-    { 209,  ZoneID::COUNT,   "Hat 209 - TODO"    },
-    { 210,  ZoneID::COUNT,   "Hat 210 - TODO"    },
-    { 211,  ZoneID::COUNT,   "Hat 211 - TODO"    },
-    { 214,  ZoneID::COUNT,   "Hat 214 - TODO"    },
-    { 215,  ZoneID::COUNT,   "Hat 215 - TODO"    },
-    { 216,  ZoneID::COUNT,   "Hat 216 - TODO"    },
-    { 217,  ZoneID::COUNT,   "Hat 217 - TODO"    },
-    { 219,  ZoneID::COUNT,   "Hat 219 - TODO"    },
+    // ── Slot 1 — Shoes ──────────────────────────────────────────────────────
+    { 44, 100,  ZoneID::EntrancePlaza,    "Bare Feet"   },
+    { 45, 102,  ZoneID::EntrancePlaza,    "White Dress Shoes"   },
+    { 46, 102,  ZoneID::EntrancePlaza,    "White Dress Shoes"   },
+    { 47, 102,  ZoneID::EntrancePlaza,    "White Dress Shoes"   },
+    { 48, 102,  ZoneID::ParadisePlaza,    "White Dress Shoes"   },
+    { 49, 103,  ZoneID::EntrancePlaza,    "Black Dress Shoes with Purple Socks"   },
+    { 50, 103,  ZoneID::EntrancePlaza,    "Black Dress Shoes with Purple Socks"   },
+    { 51, 103,  ZoneID::ParadisePlaza,    "Black Dress Shoes with Purple Socks"   },
+    { 52, 103,  ZoneID::ParadisePlaza,    "Black Dress Shoes with Purple Socks"   },
+    { 53, 104,  ZoneID::EntrancePlaza,    "Red and Black Running Shoes"   },
+    { 54, 104,  ZoneID::WonderlandPlaza,  "Red and Black Running Shoes"   },
+    { 55, 105,  ZoneID::EntrancePlaza,    "White and Red Lowtops with Soccer Socks"   },
+    { 56, 105,  ZoneID::ParadisePlaza,    "White and Red Lowtops with Soccer Socks"   },
+    { 57, 105,  ZoneID::WonderlandPlaza,  "White and Red Lowtops with Soccer Socks"   },
+    { 58, 106,  ZoneID::EntrancePlaza,    "Orange Lowtops with White Pearl Anklet"   },
+    { 59, 106,  ZoneID::WonderlandPlaza,  "Orange Lowtops with White Pearl Anklet"   },
 
-    // ── Slot 3 — Accessories (checkId = 300 + id) ───────────────────────────
-    { 301,  ZoneID::COUNT,   "Accessory 301 - TODO" },
-    { 302,  ZoneID::COUNT,   "Accessory 302 - TODO" },
-    { 304,  ZoneID::COUNT,   "Accessory 304 - TODO" },
-    { 306,  ZoneID::COUNT,   "Accessory 306 - TODO" },
-    { 310,  ZoneID::COUNT,   "Accessory 310 - TODO" },
+    // ── Slot 2 — Head ───────────────────────────────────────────────────────
+    { 60, 201,  ZoneID::EntrancePlaza,    "Brown Hair Dye"   },
+    { 61, 202,  ZoneID::ColbysMovieland,  "Mega Man Helmet"   },
+    { 62, 203,  ZoneID::EntrancePlaza,    "Grey Hair Dye"   },
+    { 63, 204,  ZoneID::WonderlandPlaza,  "Light Brown Hair Dye"   },
+    { 64, 205,  ZoneID::WonderlandPlaza,  "Red Hair Dye"   },
+    { 65, 207,  ZoneID::ParadisePlaza,    "Black Baseball Cap"   },
+    { 66, 207,  ZoneID::WonderlandPlaza,  "Black Baseball Cap"   },
+    { 67, 207,  ZoneID::NorthPlaza,       "Black Baseball Cap"   },
+    { 68, 208,  ZoneID::EntrancePlaza,    "Blue and White Baseball Cap"   },
+    { 69, 208,  ZoneID::WonderlandPlaza,  "Blue and White Baseball Cap"   },
+    { 70, 208,  ZoneID::NorthPlaza,       "Blue and White Baseball Cap"   },
+    { 71, 209,  ZoneID::EntrancePlaza,    "Tan Fedora"   },
+    { 72, 209,  ZoneID::NorthPlaza,       "Tan Fedora"   },
+    { 73, 210,  ZoneID::NorthPlaza,       "Black Fedora"   },
+    { 74, 214,  ZoneID::EntrancePlaza,    "Ghoul Mask"   },
+    { 75, 215,  ZoneID::ParadisePlaza,    "Horse Mask"   },
+    { 76, 216,  ZoneID::ParadisePlaza,    "Teddy Bear Mask"   },
+    { 77, 217,  ZoneID::ParadisePlaza,    "Servbot Mask"   },
+
+    // ── Slot 3 — Accessories ────────────────────────────────────────────────
+    { 78, 301,  ZoneID::AlFrescaPlaza,    "Grey Sunglasses"   },
+    { 79, 301,  ZoneID::EntrancePlaza,    "Grey Sunglasses"   },
+    { 80, 301,  ZoneID::ParadisePlaza,    "Grey Sunglasses"   },
+    { 81, 301,  ZoneID::WonderlandPlaza,  "Grey Sunglasses"   },
+    { 82, 302,  ZoneID::AlFrescaPlaza,    "Silver Wire-Frame Dark-tinted Glasses"   },
+    { 83, 302,  ZoneID::EntrancePlaza,    "Silver Wire-Frame Dark-tinted Glasses"   },
+    { 84, 302,  ZoneID::ParadisePlaza,    "Silver Wire-Frame Dark-tinted Glasses"   },
+    { 85, 303,  ZoneID::AlFrescaPlaza,    "Grey Rimless Wire-Frame Glasses"   },
+    { 86, 303,  ZoneID::EntrancePlaza,    "Grey Rimless Wire-Frame Glasses"   },
+    { 87, 304,  ZoneID::AlFrescaPlaza,    "Red Armless Sunglasses"   },
+    { 88, 304,  ZoneID::ParadisePlaza,    "Red Armless Sunglasses"   },
+    { 89, 304,  ZoneID::WonderlandPlaza,  "Red Armless Sunglasses"   },
+    { 90, 305,  ZoneID::AlFrescaPlaza,    "Silver Rimless Wire-Frame Glasses"   },
+    { 91, 305,  ZoneID::EntrancePlaza,    "Silver Rimless Wire-Frame Glasses"   },
+    { 92, 305,  ZoneID::ParadisePlaza,    "Silver Rimless Wire-Frame Glasses"   },
+    { 93, 305,  ZoneID::WonderlandPlaza,  "Silver Rimless Wire-Frame Glasses"   },
+    { 94, 306,  ZoneID::ParadisePlaza,    "Black and Orange Sunglasses"   },
+    { 95, 306,  ZoneID::WonderlandPlaza,  "Black and Orange Sunglasses"   },
+    { 96, 310,  ZoneID::COUNT,            "Round Shades Outfit"   },
 };
 
 void CheckAvailability::RegisterClothingTimes()
 {
     for (const auto& e : kClothingDB)
-        s_availabilityDB[{CheckType::Clothing, e.checkId}] = {
+        s_availabilityDB[{ CheckType::Clothing, e.checkId }] = {
             TimeManager::GAME_START_TICK, false, e.zone, e.notes };
+}
+
+static std::unordered_map<uint64_t, std::vector<uint32_t>> s_clothingZoneMap;
+static uint32_t s_clothingCheckCount = 0;
+
+void CheckAvailability::BuildClothingLookup()
+{
+    s_clothingCheckCount = (uint32_t)(sizeof(kClothingDB) / sizeof(kClothingDB[0]));
+
+    for (const auto& e : kClothingDB)
+    {
+        uint64_t key = ((uint64_t)e.costumeId << 32) | (uint32_t)(int)e.zone;
+        s_clothingZoneMap[key].push_back(e.checkId);
+    }
+}
+
+const std::vector<uint32_t>* CheckAvailability::GetClothingCheckIds(uint32_t costumeId, ZoneID zone)
+{
+    uint64_t key = ((uint64_t)costumeId << 32) | (uint32_t)(int)zone;
+    auto it = s_clothingZoneMap.find(key);
+    if (it != s_clothingZoneMap.end())
+        return &it->second;
+    return nullptr;
+}
+
+uint32_t CheckAvailability::GetClothingCheckCount()
+{
+    return s_clothingCheckCount;
 }
 
 uint32_t CheckAvailability::GetEarliestTime(CheckId check)

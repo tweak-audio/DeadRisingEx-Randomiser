@@ -650,20 +650,10 @@ void CheckSystem::Initialize()
 
     if (cfg.clothingChecks)
     {
-        // Clothing pickups — 66 world checks (achievement unlocks excluded)
-        RegisterCheckRange(CheckType::Clothing,  0,  26);   // slot 0: cos000-cos026
-        RegisterCheckRange(CheckType::Clothing, 28,  33);   // slot 0: cos028-cos033
-        RegisterCheckRange(CheckType::Clothing, 38,  38);   // slot 0: cos038
-        RegisterCheckRange(CheckType::Clothing, 40,  42);   // slot 0: cos040-cos042
-        RegisterCheckRange(CheckType::Clothing, 100, 109);  // slot 1: cos100-cos109
-        RegisterCheckRange(CheckType::Clothing, 202, 205);  // slot 2: cos202-cos205
-        RegisterCheckRange(CheckType::Clothing, 207, 211);  // slot 2: cos207-cos211
-        RegisterCheckRange(CheckType::Clothing, 214, 217);  // slot 2: cos214-cos217
-        RegisterCheckRange(CheckType::Clothing, 219, 219);  // slot 2: cos219
-        RegisterCheckRange(CheckType::Clothing, 301, 302);  // slot 3: cos301-cos302
-        RegisterCheckRange(CheckType::Clothing, 304, 304);  // slot 3: cos304
-        RegisterCheckRange(CheckType::Clothing, 306, 306);  // slot 3: cos306
-        RegisterCheckRange(CheckType::Clothing, 310, 310);  // slot 3: cos310
+        // One check per physical store location — count driven by kClothingDB row count
+        uint32_t count = CheckAvailability::GetClothingCheckCount();
+        if (count > 0)
+            RegisterCheckRange(CheckType::Clothing, 1, count);
     }
 
     // Build the check list from registered ranges
@@ -758,6 +748,11 @@ Reward CheckSystem::GetRewardForCheck(CheckId check)
     auto it = s_rewardMap.find(check);
     if (it == s_rewardMap.end()) return { RewardType::None, 0 };
     return it->second;
+}
+
+bool CheckSystem::IsCompleted(CheckType type, uint32_t id)
+{
+    return s_completed.count(CheckKey({ type, id })) > 0;
 }
 
 void CheckSystem::CompleteCheck(CheckType type, uint32_t id)
