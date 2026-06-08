@@ -6,10 +6,14 @@
 #include "MtFramework/Item/uItem.h"
 #include "MtFramework/Item/sItemCtrl.h"
 #include "MtFramework/Archive/sResource.h"
+#include "MtFramework/MtObject.h"
 
 #include <Windows.h>
 #include <vector>
 #include <cmath>
+#include <string>
+
+extern bool(__stdcall *sUnit_AddObject)(void *thisptr, DWORD Unk, void *pObject);
 
 static const char* FAILED_REWARD_ITEMS = "DeadRisingEx_Failed_Items.txt";
 
@@ -27,7 +31,7 @@ static const DWORD g_itemPool[] =
     30,     // Water Gun
     32,     // Toy Laser Sword
     38,     // Snack
-    43,     // Well Done Steak
+    //43,     // Well Done Steak
     44,     // Spoiled Meat
     52,     // Katana
     57,     // Potted Plant
@@ -70,7 +74,7 @@ const char* GetItemNameFromId(DWORD itemId)
         case 30:  return "Water Gun";
         case 32:  return "Toy Laser Sword";
         case 38:  return "Snack";
-        case 43:  return "Well Done Steak";
+        //case 43:  return "Well Done Steak";
         case 44:  return "Spoiled Meat";
         case 52:  return "Katana";
         case 57:  return "Potted Plant";
@@ -183,7 +187,12 @@ static Vector4 GetPlayerSpawnPosition()
     return pos;
 }
 
-static bool SpawnItemAtPosition(DWORD itemId, const Vector4& pos)
+// ── Approach A (inactive): sItemCtrl::_SpawnItem ──────────────────────────
+// Pre-loads the archive, delegates init to _SpawnItem (which calls
+// SetupItemProperties internally), then releases the manual archive ref.
+// Goes through the Hook_SpawnItem detour.
+#if 0
+static bool SpawnItemViaCtrl(DWORD itemId, const Vector4& pos)
 {
     sItemCtrl* ctrl = sItemCtrl::Instance();
     if (!ctrl) return false;
@@ -195,8 +204,6 @@ static bool SpawnItemAtPosition(DWORD itemId, const Vector4& pos)
     if (!info || !info->ArchivePath || !info->ArchivePath[0])
         return false;
 
-    // Pre-load the archive so assets not in this area are available.
-    // _SpawnItem handles full item init (including SetupItemProperties) internally.
     cResource* res = resMgr->LoadGameResource<cResource>(
         rArchive::DebugTypeInfo,
         info->ArchivePath,
@@ -206,15 +213,71 @@ static bool SpawnItemAtPosition(DWORD itemId, const Vector4& pos)
     if (!res) return false;
 
     uItem* item = sItemCtrl::_SpawnItem(ctrl, itemId);
-
-    // Release the manual archive ref regardless of spawn success —
-    // _SpawnItem holds its own ref while the item is live.
     res->DecrementRefCount();
 
     if (!item) return false;
 
     Vector4* itemPos = (Vector4*)((uint8_t*)item + 0x40);
     if (itemPos) *itemPos = pos;
+
+    return true;
+}
+#endif
+
+// ── Approach B (active): DTI-based spawn (mirrors spawn_item console command) ──
+// Parses the hex file ID from the archive path, resolves the uOmXX class name
+// via MtDTI, creates the instance directly, then registers it with sUnit.
+// Does NOT go through sItemCtrl or Hook_SpawnItem.
+static bool SpawnItemAtPosition(DWORD itemId, const Vector4& pos)
+{
+    ItemInfoEntry* info = &uItem::ItemInfoTable[itemId];
+    if (!info || !info->ArchivePath || !info->ArchivePath[0])
+        return false;
+
+    if (uItem::ItemProperties[itemId] == nullptr)
+        return false;
+
+    // Parse hex file ID from the tail of the archive path (e.g. "...\\om0004" → 0x04)
+    std::string sItemPath = info->ArchivePath;
+    int slashIdx = (int)sItemPath.find_last_of('\\');
+    std::string sItemName = sItemPath.substr(slashIdx + 3);
+    DWORD itemFileId = strtoul(sItemName.c_str(), nullptr, 16);
+
+    sResource* resMgr = sResource::Instance();
+    if (!resMgr) return false;
+
+    cResource* res = resMgr->LoadGameResource<cResource>(
+        rArchive::DebugTypeInfo,
+        sItemPath.c_str(),
+        RLF_SYNCHRONOUS | RLF_LOAD_AS_ARCHIVE
+    );
+    if (!res) return false;
+
+    char sItemClassName[64];
+    switch (itemId)
+    {
+    case 69:   // Queen bee — has a separate item DTI instance
+    case 135:  // Sniper rifle — same
+        snprintf(sItemClassName, sizeof(sItemClassName), "uOm%02x_1", itemFileId);
+        break;
+    default:
+        snprintf(sItemClassName, sizeof(sItemClassName), "uOm%02x", itemFileId);
+        break;
+    }
+
+    MtDTI* pItemDTI = MtDTI::FindDTIByName(sItemClassName, MtDTI::DefaultMtDTIParentObject);
+    if (!pItemDTI) return false;
+
+    uItem* pItem = pItemDTI->CreateInstance<uItem>();
+    if (!pItem) return false;
+
+    if (!pItem->SetupItemProperties()) return false;
+
+    *(DWORD*)(((BYTE*)pItem) + 0x2F48) |= 0x1000;
+
+    if (!sUnit_AddObject(*g_sUnitInstance, 9, pItem)) return false;
+
+    *(Vector4*)(((BYTE*)pItem) + 0x40) = pos;
 
     return true;
 }
