@@ -89,7 +89,7 @@ static const LocationEntry kPPStickerDB[] =
     { 171,  ZoneID::EntrancePlaza,      "PP Sticker 171 - TODO" },
     { 172,  ZoneID::EntrancePlaza,      "PP Sticker 172 - TODO" },
     { 173,  ZoneID::WonderlandPlaza,    "PP Sticker 173 - TODO" },
-    { 174,  ZoneID::COUNT,            "PP Sticker 174 - TODO" },
+    { 174,  ZoneID::COUNT,              "PP Sticker 174 - TODO" },
     { 175,  ZoneID::WonderlandPlaza,    "PP Sticker 175 - TODO" },
     { 176,  ZoneID::WonderlandPlaza,    "PP Sticker 176 - TODO" },
     { 177,  ZoneID::WonderlandPlaza,    "PP Sticker 177 - TODO" },
@@ -140,7 +140,7 @@ static const LocationEntry kPPStickerDB[] =
     { 222,  ZoneID::FoodCourt,          "PP Sticker 222 - TODO" },
     { 223,  ZoneID::EntrancePlaza,      "PP Sticker 223 - TODO" },
     { 225,  ZoneID::EntrancePlaza,      "PP Sticker 225 - TODO" },
-    { 226,  ZoneID::COUNT,       "PP Sticker 226 - TODO" },
+    { 226,  ZoneID::COUNT,              "PP Sticker 226 - TODO" },
 };
 
 void CheckAvailability::RegisterPPStickerTimes()

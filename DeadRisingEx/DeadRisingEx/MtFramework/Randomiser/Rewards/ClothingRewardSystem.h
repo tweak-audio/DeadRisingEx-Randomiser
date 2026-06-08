@@ -17,4 +17,5 @@ void                 ApplyRandomStartingOutfit();
 void                 GenerateClothingRewardSlots();
 void                 ResetClothingRewardSlots();
 ClothingRewardResult GiveNextClothingReward();
+void                 ReapplyRewardedCostumes();
 

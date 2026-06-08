@@ -11,6 +11,8 @@ Save Checks to file to be recalled later
 #include <Windows.h>
 
 std::vector<uint16_t> SaveStateManager::s_completedChecks;
+uint8_t SaveStateManager::s_rewardCostumeIds[6] = {};
+bool    SaveStateManager::s_hasRewardCostume[6] = {};
 
 void SaveStateManager::Initialize()
 {
@@ -54,18 +56,21 @@ void SaveStateManager::SaveCheckState()
         return;
     }
     
-    // Write version number
-    uint32_t version = 1;
+    uint32_t version = 2;
     file.write(reinterpret_cast<const char*>(&version), sizeof(version));
-    
-    // Write number of completed checks
+
     uint32_t count = static_cast<uint32_t>(s_completedChecks.size());
     file.write(reinterpret_cast<const char*>(&count), sizeof(count));
-    
-    // Write each check ID
+
     for (uint16_t checkId : s_completedChecks)
-    {
         file.write(reinterpret_cast<const char*>(&checkId), sizeof(checkId));
+
+    // Reward costume state (6 id bytes + 6 flag bytes)
+    file.write(reinterpret_cast<const char*>(s_rewardCostumeIds), sizeof(s_rewardCostumeIds));
+    for (int i = 0; i < 6; i++)
+    {
+        uint8_t flag = s_hasRewardCostume[i] ? 1 : 0;
+        file.write(reinterpret_cast<const char*>(&flag), sizeof(flag));
     }
     
     file.close();
@@ -92,26 +97,35 @@ void SaveStateManager::LoadCheckState()
     uint32_t version = 0;
     file.read(reinterpret_cast<char*>(&version), sizeof(version));
     
-    if (version != 1)
+    if (version != 1 && version != 2)
     {
         LogLine("[SAVESTATE] Unknown save file version");
         file.close();
         return;
     }
-    
-    // Read count
+
     uint32_t count = 0;
     file.read(reinterpret_cast<char*>(&count), sizeof(count));
-    
-    // Read all check IDs
+
     s_completedChecks.clear();
     s_completedChecks.reserve(count);
-    
+
     for (uint32_t i = 0; i < count; i++)
     {
         uint16_t checkId = 0;
         file.read(reinterpret_cast<char*>(&checkId), sizeof(checkId));
         s_completedChecks.push_back(checkId);
+    }
+
+    if (version >= 2)
+    {
+        file.read(reinterpret_cast<char*>(s_rewardCostumeIds), sizeof(s_rewardCostumeIds));
+        for (int i = 0; i < 6; i++)
+        {
+            uint8_t flag = 0;
+            file.read(reinterpret_cast<char*>(&flag), sizeof(flag));
+            s_hasRewardCostume[i] = flag != 0;
+        }
     }
     
     file.close();
@@ -155,4 +169,22 @@ void SaveStateManager::ResetCompletedChecks()
     s_completedChecks.clear();
     SaveCheckState();
     LogLine("[SAVESTATE] Completed checks reset (re-seed)");
+}
+
+void SaveStateManager::SetRewardCostume(uint8_t slot, uint8_t id)
+{
+    if (slot >= 6) return;
+    s_rewardCostumeIds[slot]  = id;
+    s_hasRewardCostume[slot]  = true;
+    SaveCheckState();
+}
+
+bool SaveStateManager::HasRewardCostume(uint8_t slot)
+{
+    return slot < 6 && s_hasRewardCostume[slot];
+}
+
+uint8_t SaveStateManager::GetRewardCostumeId(uint8_t slot)
+{
+    return slot < 6 ? s_rewardCostumeIds[slot] : 0;
 }

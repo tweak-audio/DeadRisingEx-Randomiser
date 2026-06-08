@@ -131,7 +131,7 @@ void TimeChunkReward::GrantTimeChunk(int chunkNumber)
     auto newLimitChunk = TimeManager::GetChunk(s_chunkMode, totalUnlocked - 1);
     
     char buf[256];
-    sprintf_s(buf, "[TIME GATE] ★ Unlocked chunk %d: %s (%s to %s)", 
+    sprintf_s(buf, "[TIME GATE] Unlocked chunk %d: %s (%s to %s)",
               chunkNumber, chunk.label.c_str(), 
               chunk.startTime.c_str(), chunk.endTime.c_str());
     LogLine(buf);
@@ -201,7 +201,7 @@ void TimeChunkReward::EnforceTimeGate()
             auto limitChunk = TimeManager::GetChunk(s_chunkMode, unlockedCount - 1);
             
             char buf[256];
-            sprintf_s(buf, "[TIME GATE] ⚠ TIME LIMIT EXCEEDED! You have %d/%d chunks unlocked", 
+            sprintf_s(buf, "[TIME GATE] WARNING: TIME LIMIT EXCEEDED! You have %d/%d chunks unlocked",
                       unlockedCount, GetTotalChunks());
             LogLine(buf);
             sprintf_s(buf, "[TIME GATE] Current limit: %s (end of chunk %d)", 

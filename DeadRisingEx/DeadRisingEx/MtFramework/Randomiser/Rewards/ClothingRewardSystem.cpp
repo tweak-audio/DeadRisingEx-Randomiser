@@ -1,6 +1,7 @@
 #include "ClothingReward.h"
 #include "ClothingRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/CheckSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/ChecksManager.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/ClothingReward.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include "../InputSystem.h"
@@ -78,7 +79,7 @@ static const CostumeEntry g_costumePool[] =
     { 1,  8,  "Shoes 08" },
     { 1,  9,  "Shoes 09" },
 
-    // Slot 2 - Unknown
+    // Slot 2 - Head wear
     { 2,  1,  "Slot2 01" },
     { 2,  2,  "Slot2 02" },
     { 2,  3,  "Slot2 03" },
@@ -120,6 +121,7 @@ static const int MAX_CLOTHING_REWARDS = COSTUME_POOL_SIZE;
 static CostumeEntry g_rewardSlots[COSTUME_POOL_SIZE] = {};
 static int   g_nextSlot         = 0;
 static bool  g_slotsInitialized = false;
+
 
 // ─────────────────────────────────────────────
 //  Seeded RNG
@@ -197,6 +199,8 @@ ClothingRewardResult GiveNextClothingReward()
 
     const CostumeEntry& entry = g_rewardSlots[g_nextSlot];
     ClothingReward::GiveCostume(entry.slot, entry.id);
+
+    SaveStateManager::SetRewardCostume(entry.slot, entry.id);
 
     char buf[128];
     sprintf_s(buf, "[ClothingRewardSystem] Gave slot %d: %s (slot=%d id=%d)",
@@ -279,4 +283,23 @@ void ApplyRandomStartingOutfit()
     }
 
     LogLine("[OUTFIT] ApplyRandomStartingOutfit done");
+
+    ReapplyRewardedCostumes();
+}
+
+void ReapplyRewardedCostumes()
+{
+    bool any = false;
+    for (int slot = 0; slot < 6; slot++)
+    {
+        if (!SaveStateManager::HasRewardCostume(slot)) continue;
+        uint8_t id = SaveStateManager::GetRewardCostumeId(slot);
+        ClothingReward::GiveCostume((uint8_t)slot, id);
+        char buf[96];
+        sprintf_s(buf, "[ClothingRewardSystem] Reapplied reward costume slot=%d id=%d", slot, id);
+        LogLine(buf);
+        any = true;
+    }
+    if (!any)
+        LogLine("[ClothingRewardSystem] No reward costumes to reapply");
 }
