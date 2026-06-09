@@ -50,13 +50,13 @@
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/PhotoProcessHook.h"
 
 void RegisterRandomiserConsoleCommands();
-#include "DeadRisingEx/MtFramework/Randomiser/Checks/ClothingCheck.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/CostumeCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/SetItemRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/LevelUpRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/CameraRefillReward.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/TimeChunkReward.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/RewardNotif.h"
-#include "DeadRisingEx/MtFramework/Randomiser/Rewards/ClothingRewardSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/CostumeRewardSystem.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
 
 
@@ -243,10 +243,10 @@ BOOL APIENTRY DllMain(HMODULE hModule,
                     ShowRewardNotification(RewardType::BatteryRefill);
                     break;
 
-                case RewardType::Clothing:
+                case RewardType::Costume:
                     {
-                        ClothingRewardResult result = GiveNextClothingReward();
-                        ShowRewardNotification(RewardType::Clothing, result.name, 0);
+                        CostumeRewardResult result = GiveNextCostumeReward();
+                        ShowRewardNotification(RewardType::Costume, result.name, 0);
                         break;
                     }
 

@@ -3,14 +3,14 @@
 #include <cstdint>
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include "MtFramework/Game/sMain.h"
-#include "ClothingCheck.h"
+#include "CostumeCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/CheckSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/CheckAvailability.h"
 #include "DeadRisingEx/MtFramework/Randomiser/AreaKeySystem.h"
 #include "../InputSystem.h"
 #include "../AreaTransitionHook.h"
 
-namespace ClothingCheck
+namespace CostumeCheck
 {
     // ═══════════════════════════════════════════
     //  VARIABLES
@@ -22,8 +22,23 @@ namespace ClothingCheck
     static void* s_costumeStateMachineObj = nullptr;
 
     static const int s_achievementCostumes[] = {
-        27, 34, 35, 36, 37, 39,
-        303, 305, 307
+        // Outfits (slot 0)
+        27,   // Mega Man Torso
+        32,   // Ammo Belt
+        35,   // Arthur's Boxers
+        36,   // Prisoner Outfit
+        37,   // Mall Employee Uniform
+        41,   // Special Forces Uniform
+        42,   // Pro Wrestling Briefs
+        // Shoes (slot 1)
+        107,  // Special Forces Boots
+        108,  // Mega Man Boots
+        109,  // Pro Wrestling Boots
+        // Head (slot 2)
+        211,  // White Hat
+        219,  // Cop Hat
+        // Accessories (slot 3)
+        307,  // Hockey Mask
     };
 
     static bool IsAchievementCostume(int checkId)
@@ -80,12 +95,12 @@ namespace ClothingCheck
         if (!IsAchievementCostume((int)costumeId))
         {
             uint32_t checkId = 0;
-            const std::vector<uint32_t>* checks = CheckAvailability::GetClothingCheckIds(costumeId, zone);
+            const std::vector<uint32_t>* checks = CheckAvailability::GetCostumeCheckIds(costumeId, zone);
             if (checks)
             {
                 for (uint32_t cid : *checks)
                 {
-                    if (!CheckSystem::IsCompleted(CheckType::Clothing, cid))
+                    if (!CheckSystem::IsCompleted(CheckType::Costume, cid))
                     {
                         checkId = cid;
                         break;
@@ -99,7 +114,7 @@ namespace ClothingCheck
             LogLine(buf);
 
             if (checkId != 0)
-                CheckSystem::CompleteCheck(CheckType::Clothing, checkId);
+                CheckSystem::CompleteCheck(CheckType::Costume, checkId);
             return;
         }
 
@@ -113,6 +128,6 @@ namespace ClothingCheck
     void InitializeHooks()
     {
         DetourAttach((void**)&originalCostumePickup, Hook_CostumePickup);
-        LogLine("[ClothingCheck] Hooks registered");
+        LogLine("[CostumeCheck] Hooks registered");
     }
 }

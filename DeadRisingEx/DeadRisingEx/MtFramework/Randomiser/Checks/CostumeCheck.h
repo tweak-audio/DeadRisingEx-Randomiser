@@ -3,7 +3,7 @@
 #pragma once
 #include <cstdint>
 
-namespace ClothingCheck
+namespace CostumeCheck
 {
     void InitializeHooks();
     void* GetStateMachineObj();

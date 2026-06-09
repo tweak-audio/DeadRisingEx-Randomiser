@@ -4,6 +4,7 @@
 #pragma once
 #include <Windows.h>
 #include <cstdint>
+#include <vector>
 
 enum class ZoneID : int
 {
@@ -38,6 +39,7 @@ public:
     static ZoneID ZoneFromAreaId(uint32_t rawAreaId);
     static uint32_t GetBlockFallback(uint32_t sourceAreaId, uint32_t lockedAreaId);
     static const char* GetZoneName(ZoneID zone);
+    static std::vector<ZoneID> GetAdjacentZones(ZoneID zone);
 
     void SetIntroComplete(bool complete);
     bool IsIntroComplete() const;

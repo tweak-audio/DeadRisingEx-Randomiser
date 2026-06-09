@@ -1,7 +1,7 @@
 #include "SurvivorPhotoCheck.h"
 #include "PsychopathPhotoCheck.h"
 #include "PPStickerCheck.h"
-#include "ClothingCheck.h"
+#include "CostumeCheck.h"
 
 #pragma once
 #include <cstdint>
@@ -19,7 +19,7 @@ constexpr int TIME_CHUNK_REWARDS = USE_6_HOUR_CHUNKS ? 11 : 5;  // 11 for 6hr, 5
 constexpr int LEVEL_UP_REWARDS = 49;
 constexpr int BATTERY_REFILL_REWARDS = 10;
 constexpr int AREA_KEY_REWARDS = 11;  // One per zone (COUNT), excluding ParadisePlaza (auto-given)
-constexpr int CLOTHING_REWARDS_MIN = 30;
+constexpr int COSTUME_REWARDS_MIN = 30;
 
 constexpr int TOTAL_CHECKS = TOTAL_PPSTICKERS + TOTAL_SURVIVORS + TOTAL_PSYCHOPATHS + TOTAL_COSTUMES;
 
@@ -32,7 +32,7 @@ enum class CheckType : uint32_t
     SurvivorPhoto       = 1,
     SurvivorJoin        = 2,
     PsychopathPhoto     = 3,
-    Clothing            = 4,
+    Costume             = 4,
 };
 
 // ─────────────────────────────────────────────
@@ -45,7 +45,7 @@ enum class RewardType : uint32_t
     LevelUp         = 2,
     BatteryRefill   = 3,
     TimeChunk       = 4,  // Now unified - mode determined at runtime
-    Clothing        = 5,
+    Costume         = 5,
     AreaKey         = 6,  // value = ZoneID index
 };
 // ─────────────────────────────────────────────

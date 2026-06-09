@@ -5,11 +5,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  randomiser_seed [n]
 //
-//  No argument  → reroll to a new random seed.
-//  With argument → switch to that exact seed.
-//
-//  Either way, SetSeed() clears completed checks, rebuilds the reward map,
-//  and saves to DeadRisingEx_Randomiser_Seed.dat.
+//  No argument  → find a new guaranteed-beatable random seed (same as startup).
+//  With argument → force that exact seed (warns if unbeatable).
 // ─────────────────────────────────────────────────────────────────────────────
 
 static __int64 Cmd_RandomiserSeed(WCHAR** argv, int argc)
@@ -20,23 +17,38 @@ static __int64 Cmd_RandomiserSeed(WCHAR** argv, int argc)
         return 0;
     }
 
-    uint32_t seed = 0;
-
     if (argc >= 1)
     {
-        seed = (uint32_t)_wtoi(argv[0]);
+        uint32_t seed = (uint32_t)_wtoi(argv[0]);
         if (seed == 0)
         {
             ImGuiConsole::Instance()->ConsolePrint(L"[RANDOMISER] Seed must be non-zero. Use no argument to reroll randomly.\n");
             return 0;
         }
+
+        CheckSystem::SetSeed(seed);
+
+        wchar_t buf[128];
+        if (!CheckSystem::IsSeedBeatable(/*quiet=*/true))
+        {
+            swprintf_s(buf, L"[RANDOMISER] Seed %u set. WARNING: this seed may be unbeatable!\n", seed);
+        }
+        else
+        {
+            swprintf_s(buf, L"[RANDOMISER] Seed %u set.\n", seed);
+        }
+        ImGuiConsole::Instance()->ConsolePrint(buf);
+    }
+    else
+    {
+        ImGuiConsole::Instance()->ConsolePrint(L"[RANDOMISER] Searching for beatable seed...\n");
+        CheckSystem::GenerateBeatableSeed();
+
+        wchar_t buf[64];
+        swprintf_s(buf, L"[RANDOMISER] Seed set to: %u\n", CheckSystem::GetSeed());
+        ImGuiConsole::Instance()->ConsolePrint(buf);
     }
 
-    CheckSystem::SetSeed(seed);  // 0 → random via QueryPerformanceCounter internally
-
-    wchar_t buf[64];
-    swprintf_s(buf, L"[RANDOMISER] Seed set to: %u\n", CheckSystem::GetSeed());
-    ImGuiConsole::Instance()->ConsolePrint(buf);
     return 0;
 }
 

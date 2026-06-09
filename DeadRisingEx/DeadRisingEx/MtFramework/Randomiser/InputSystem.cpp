@@ -8,7 +8,7 @@
 #include "Rewards/CameraRefillReward.h"
 #include "Rewards/TimeChunkReward.h"
 #include "Rewards/RewardNotif.h"
-#include "DeadRisingEx/MtFramework/Randomiser/Rewards/ClothingRewardSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/CostumeRewardSystem.h"
 
 #include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"

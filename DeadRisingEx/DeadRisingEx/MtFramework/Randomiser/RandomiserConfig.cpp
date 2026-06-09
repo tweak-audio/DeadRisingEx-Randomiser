@@ -67,7 +67,7 @@ void RandomiserConfig::Load(const std::string& gameDir)
     psychopathPhotoChecks = ReadBool("PhotoSanity", "PsychopathPhotoChecks", true, p);
 
     // [Checks]
-    clothingChecks = ReadBool("Checks", "ClothingChecks",  true, p);
+    costumeChecks  = ReadBool("Checks", "CostumeChecks",   true, p);
     areaKeyRewards = ReadBool("Checks", "AreaKeyRewards",  true, p);
     timeChunks     = ReadBool("Checks", "TimeChunks",      true, p);
     sixHourChunks  = ReadBool("Checks", "SixHourChunks",   true, p);

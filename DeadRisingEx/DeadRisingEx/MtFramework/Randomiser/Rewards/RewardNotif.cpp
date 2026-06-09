@@ -60,11 +60,11 @@ static const char* GetRewardText(RewardType type, const char* rewardName, int va
                 return "ITEM UNLOCKED!";
             return s_buf;
 
-        case RewardType::Clothing:
+        case RewardType::Costume:
             if (rewardName && *rewardName)
-                sprintf_s(s_buf, sizeof(s_buf), "CLOTHING: %s", rewardName);
+                sprintf_s(s_buf, sizeof(s_buf), "COSTUME: %s", rewardName);
             else
-                return "CLOTHING REWARD!";
+                return "COSTUME REWARD!";
             return s_buf;
 
         case RewardType::AreaKey:
@@ -114,11 +114,21 @@ void UpdateRewardNotifications()
     ImGuiIO& io       = ImGui::GetIO();
     ImVec2 screenSize = io.DisplaySize;
 
+    // Measure the widest active notification and size the window to fit it
+    ImFont* font     = ImGui::GetFont();
+    float   fontSize = font->FontSize * 2.0f;
+    float   windowW  = 600.0f;
+    for (const auto& notif : s_notifications)
+    {
+        float w = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, notif.text.c_str()).x + 40.0f;
+        if (w > windowW) windowW = w;
+    }
+
     ImGui::SetNextWindowPos(
         ImVec2(screenSize.x * 0.5f, screenSize.y * 0.15f),
         ImGuiCond_Always,
         ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(ImVec2(600, 0), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(windowW, 0), ImGuiCond_Always);
     ImGui::SetNextWindowBgAlpha(0.0f);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -148,10 +158,6 @@ void UpdateRewardNotifications()
 
         ImU32 white = ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 1.0f, 1.0f, alpha));
         ImU32 black = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 0.0f, 0.0f, alpha));
-
-        
-        ImFont* font     = ImGui::GetFont();
-        float  fontSize  = font->FontSize * 2.0f;
 
         ImVec2 textSize  = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, notif.text.c_str());
         float  cursorY   = ImGui::GetCursorPosY();

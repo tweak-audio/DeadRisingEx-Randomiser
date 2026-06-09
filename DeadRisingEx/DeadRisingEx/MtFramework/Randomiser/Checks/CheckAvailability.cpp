@@ -10,9 +10,9 @@ This is so the randomizer can have logic
 std::unordered_map<CheckId, CheckAvailabilityInfo, CheckIdHash> CheckAvailability::s_availabilityDB;
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Shared table entry — used for PP stickers, survivors, psychopaths, clothing.
+//  Shared table entry — used for PP stickers, survivors, psychopaths, costumes.
 //  PP stickers/survivors/psychopaths notes: "Name - Store/Location, Zone"
-//  Clothing notes: "Costume Name" only (no shop suffix).
+//  Costume notes: "Costume Name" only (no shop suffix).
 //  GetCheckName() returns everything before the first " - ", or the full string.
 // ─────────────────────────────────────────────────────────────────────────────
 struct LocationEntry
@@ -29,8 +29,8 @@ void CheckAvailability::Initialize()
     RegisterPPStickerTimes();
     RegisterSurvivorTimes();
     RegisterPsychopathTimes();
-    RegisterClothingTimes();
-    BuildClothingLookup();
+    RegisterCostumeTimes();
+    BuildCostumeLookup();
 
     char buf[128];
     sprintf_s(buf, "[AVAILABILITY] Registered %d checks", (int)s_availabilityDB.size());
@@ -430,13 +430,13 @@ void CheckAvailability::RegisterPsychopathTimes()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Clothing table
+//  Costume table
 //  checkId  = unique sequential location ID (1-N), one per physical store slot
 //  costumeId = slot * 100 + id  (game-native value from the pickup hook)
 //  areaId    = game's internal area/store ID (0 = unknown, populate from costume_log.txt)
 //  Slot 0 = outfit, Slot 1 = shoes, Slot 2 = head, Slot 3 = accessory
 // ─────────────────────────────────────────────────────────────────────────────
-struct ClothingEntry
+struct CostumeEntry
 {
     uint32_t    checkId;    // unique location ID
     uint32_t    costumeId;  // slot * 100 + id
@@ -444,7 +444,7 @@ struct ClothingEntry
     const char* notes;
 };
 
-static const ClothingEntry kClothingDB[] =
+static const CostumeEntry kCostumeDB[] =
 {
     // checkId  costumeId  zone                   notes
     // ── Slot 0 — Outfits ────────────────────────────────────────────────────
@@ -552,39 +552,36 @@ static const ClothingEntry kClothingDB[] =
     { 96, 310,  ZoneID::COUNT,            "Round Shades Outfit"   },
 };
 
-void CheckAvailability::RegisterClothingTimes()
+void CheckAvailability::RegisterCostumeTimes()
 {
-    for (const auto& e : kClothingDB)
-        s_availabilityDB[{ CheckType::Clothing, e.checkId }] = {
+    for (const auto& e : kCostumeDB)
+        s_availabilityDB[{ CheckType::Costume, e.checkId }] = {
             TimeManager::GAME_START_TICK, false, e.zone, e.notes };
 }
 
-static std::unordered_map<uint64_t, std::vector<uint32_t>> s_clothingZoneMap;
-static uint32_t s_clothingCheckCount = 0;
+static std::unordered_map<uint64_t, std::vector<uint32_t>> s_costumeZoneMap;
 
-void CheckAvailability::BuildClothingLookup()
+void CheckAvailability::BuildCostumeLookup()
 {
-    s_clothingCheckCount = (uint32_t)(sizeof(kClothingDB) / sizeof(kClothingDB[0]));
-
-    for (const auto& e : kClothingDB)
+    for (const auto& e : kCostumeDB)
     {
         uint64_t key = ((uint64_t)e.costumeId << 32) | (uint32_t)(int)e.zone;
-        s_clothingZoneMap[key].push_back(e.checkId);
+        s_costumeZoneMap[key].push_back(e.checkId);
     }
 }
 
-const std::vector<uint32_t>* CheckAvailability::GetClothingCheckIds(uint32_t costumeId, ZoneID zone)
+const std::vector<uint32_t>* CheckAvailability::GetCostumeCheckIds(uint32_t costumeId, ZoneID zone)
 {
     uint64_t key = ((uint64_t)costumeId << 32) | (uint32_t)(int)zone;
-    auto it = s_clothingZoneMap.find(key);
-    if (it != s_clothingZoneMap.end())
+    auto it = s_costumeZoneMap.find(key);
+    if (it != s_costumeZoneMap.end())
         return &it->second;
     return nullptr;
 }
 
-uint32_t CheckAvailability::GetClothingCheckCount()
+uint32_t CheckAvailability::GetCostumeCheckCount()
 {
-    return s_clothingCheckCount;
+    return (uint32_t)(sizeof(kCostumeDB) / sizeof(kCostumeDB[0]));
 }
 
 uint32_t CheckAvailability::GetEarliestTime(CheckId check)
@@ -638,7 +635,7 @@ std::string CheckAvailability::GetCheckName(CheckId check)
         case CheckType::PsychopathPhoto:
             sprintf_s(buf, "Psychopath #%u", check.id);
             break;
-        case CheckType::Clothing:
+        case CheckType::Costume:
             sprintf_s(buf, "Costume #%u", check.id);
             break;
         default:

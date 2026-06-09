@@ -5,7 +5,7 @@
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/SetItemRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/TimeChunkReward.h"
-#include "DeadRisingEx/MtFramework/Randomiser/Rewards/ClothingRewardSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/CostumeRewardSystem.h"
 #include "ChecksManager.h"
 #include "DeadRisingEx/MtFramework/Randomiser/RandomiserConfig.h"
 
@@ -132,23 +132,23 @@ void CheckSystem::GenerateRewardMap()
         }
     }
 
-    // Randomly split remaining slots between clothing and set items
+    // Randomly split remaining slots between costumes and set items
     int effectiveTimeChunkRewards = cfg.timeChunks ? (cfg.sixHourChunks ? 11 : 5) : 0;
     int effectiveAreaKeyRewards   = cfg.areaKeyRewards ? AREA_KEY_REWARDS : 0;
     int remaining = total - LEVEL_UP_REWARDS - BATTERY_REFILL_REWARDS - effectiveTimeChunkRewards - effectiveAreaKeyRewards;
-    int maxClothing = min(remaining, COSTUME_POOL_SIZE);  // can't exceed pool size
-    int clothingCount = RngRange(CLOTHING_REWARDS_MIN, maxClothing + 1);
-    int setItemCount  = remaining - clothingCount;
+    int maxCostume    = min(remaining, COSTUME_POOL_SIZE);  // can't exceed pool size
+    int costumeCount  = RngRange(COSTUME_REWARDS_MIN, maxCostume + 1);
+    int setItemCount  = remaining - costumeCount;
     s_setItemCount = setItemCount;
 
     char buf[128];
-    sprintf_s(buf, "[CHECKS] Reward split: %d time chunks, %d area keys, %d clothing, %d set items (seed %u)",
-              effectiveTimeChunkRewards, effectiveAreaKeyRewards, clothingCount, setItemCount, s_seed);
+    sprintf_s(buf, "[CHECKS] Reward split: %d time chunks, %d area keys, %d costumes, %d set items (seed %u)",
+              effectiveTimeChunkRewards, effectiveAreaKeyRewards, costumeCount, setItemCount, s_seed);
     LogLine(buf);
 
-    std::vector<Reward> clothing, setItems;
-    for (int i = 0; i < clothingCount; i++)
-        clothing.push_back({ RewardType::Clothing, 0 });
+    std::vector<Reward> costumes, setItems;
+    for (int i = 0; i < costumeCount; i++)
+        costumes.push_back({ RewardType::Costume, 0 });
     for (int i = 0; i < setItemCount; i++)
         setItems.push_back({ RewardType::SetItem, 0 });
 
@@ -181,7 +181,7 @@ void CheckSystem::GenerateRewardMap()
     PlaceEvenly(areaKeys);
     PlaceEvenly(levelUps);
     PlaceEvenly(batteries);
-    PlaceEvenly(clothing);
+    PlaceEvenly(costumes);
     // SetItem fills all remaining slots — already in pool as placeholders
 
     // Fisher-Yates shuffle within each reward type's allocated positions
@@ -201,6 +201,43 @@ void CheckSystem::GenerateRewardMap()
 }
 
 int CheckSystem::GetSetItemCount() { return s_setItemCount; }
+
+// BFS from PP through the zone graph. A zone is reachable if its key is held
+// AND there is a path to it from PP through already-reachable unlocked zones.
+// The PP-EP direct corridor is blocked until Day 2 7AM (19 hours from game start).
+static void ComputeReachableZones(const bool* zonesUnlocked, bool* zonesReachable, uint32_t currentTime)
+{
+    static constexpr uint32_t EP_PATH_OPEN_TICK =
+        TimeManager::GAME_START_TICK + 19 * TimeManager::TICKS_PER_HOUR;
+
+    memset(zonesReachable, 0, static_cast<int>(ZoneID::COUNT) * sizeof(bool));
+    zonesReachable[static_cast<int>(ZoneID::ParadisePlaza)] = true;
+
+    bool changed = true;
+    while (changed)
+    {
+        changed = false;
+        for (int zi = 0; zi < static_cast<int>(ZoneID::COUNT); zi++)
+        {
+            if (!zonesReachable[zi]) continue;
+            ZoneID from = static_cast<ZoneID>(zi);
+
+            for (ZoneID to : AreaKeySystem::GetAdjacentZones(from))
+            {
+                int ti = static_cast<int>(to);
+                if (zonesReachable[ti]) continue;
+                if (!zonesUnlocked[ti]) continue;
+
+                // PP-EP corridor blocked before Day 2 7AM; use AFP or MT route instead
+                if (from == ZoneID::ParadisePlaza && to == ZoneID::EntrancePlaza &&
+                    currentTime < EP_PATH_OPEN_TICK) continue;
+
+                zonesReachable[ti] = true;
+                changed = true;
+            }
+        }
+    }
+}
 
 bool CheckSystem::IsSeedBeatable(bool quiet)
 {
@@ -239,6 +276,9 @@ bool CheckSystem::IsSeedBeatable(bool quiet)
     {
         anyProgress = false;
 
+        bool zonesReachable[static_cast<int>(ZoneID::COUNT)] = {};
+        ComputeReachableZones(zonesUnlocked, zonesReachable, currentMaxTime);
+
         for (const auto& check : s_allChecks)
         {
             uint64_t ckey = CheckKey(check);
@@ -248,7 +288,7 @@ bool CheckSystem::IsSeedBeatable(bool quiet)
             if (availableAt > currentMaxTime) continue;
 
             ZoneID zone = CheckAvailability::GetRequiredZone(check);
-            if (zone != ZoneID::COUNT && !zonesUnlocked[static_cast<int>(zone)]) continue;
+            if (zone != ZoneID::COUNT && !zonesReachable[static_cast<int>(zone)]) continue;
 
             Reward reward = GetRewardForCheck(check);
 
@@ -345,6 +385,7 @@ void CheckSystem::GenerateBeatableSeed()
 void CheckSystem::WriteSeedAnalysisToFile()
 {
     const char* filename = "DeadRisingEx_SeedAnalysis.txt";
+    const RandomiserConfig& cfg = RandomiserConfig::Get();
     
     FILE* f = nullptr;
     fopen_s(&f, filename, "w");
@@ -370,155 +411,251 @@ void CheckSystem::WriteSeedAnalysisToFile()
             totalChunks);
     
     fprintf(f, "═══════════════════════════════════════════════════════════\n");
-    fprintf(f, "  PROGRESSION LOGIC (ADDITIVE TIME CHUNKS)\n");
+    fprintf(f, "  GAME FLOW WALKTHROUGH\n");
     fprintf(f, "═══════════════════════════════════════════════════════════\n\n");
-    fprintf(f, "Note: Any time chunk reward unlocks the next time slot.\n");
-    fprintf(f, "You need %d time chunks total to reach the end.\n\n", totalChunks - 1);
-    
-    // Track progression through time chunks with ADDITIVE logic
-    uint32_t currentMaxTime = TimeManager::GetChunk(mode, 0).endTick;
-    std::unordered_set<uint64_t> usedTimeChunks;
-    int chunksUnlocked = 1;  // Start with chunk 0
-    
-    for (int chunkNum = 0; chunkNum < totalChunks; chunkNum++)
+    fprintf(f, "Checks appear when they first become reachable (time + zone).\n");
+    fprintf(f, "★ Progress = time chunks / area keys needed to advance.\n");
+    if (cfg.timeChunks)
+        fprintf(f, "Need %d time chunks total to reach the end of the game.\n\n", totalChunks - 1);
+    else
+        fprintf(f, "Time gating disabled — all time periods open from start.\n\n");
+
+    // ── Simulation state ─────────────────────────────────────────
+    // If time chunks disabled, treat all time as available from start.
+    // If area key rewards disabled, all zones open from start.
+    int      simChunks  = 1;
+    uint32_t simMaxTime = cfg.timeChunks
+                            ? TimeManager::GetChunk(mode, 0).endTick
+                            : TimeManager::GetChunk(mode, totalChunks - 1).endTick;
+
+    bool simZones[static_cast<int>(ZoneID::COUNT)] = {};
+    if (cfg.areaKeyRewards)
     {
-        auto chunk = TimeManager::GetChunk(mode, chunkNum);
-        
-        fprintf(f, "─────────────────────────────────────────────────────────\n");
-        fprintf(f, "CHUNK %d: %s\n", chunkNum, chunk.label.c_str());
-        fprintf(f, "Time Period: %s - %s\n", 
-                chunk.startTime.c_str(), chunk.endTime.c_str());
-        fprintf(f, "─────────────────────────────────────────────────────────\n\n");
-        
-        if (chunkNum == 0)
+        simZones[static_cast<int>(ZoneID::ParadisePlaza)] = true;
+    }
+    else
+    {
+        for (int z = 0; z < static_cast<int>(ZoneID::COUNT); z++)
+            simZones[z] = true;
+    }
+
+    std::unordered_set<uint64_t> processedChecks;
+    int  phaseNum       = 0;
+    bool anyPhaseProgress = true;
+
+    while (anyPhaseProgress)
+    {
+        anyPhaseProgress = false;
+
+        bool simZonesReachable[static_cast<int>(ZoneID::COUNT)] = {};
+        ComputeReachableZones(simZones, simZonesReachable, simMaxTime);
+
+        std::vector<CheckId> phaseProgress;
+        std::vector<CheckId> phaseRewards;
+
+        for (const auto& check : s_allChecks)
         {
-            fprintf(f, "This chunk is unlocked at game start.\n\n");
+            uint64_t ckey = CheckKey(check);
+            if (processedChecks.count(ckey)) continue;
+
+            uint32_t availAt = CheckAvailability::GetEarliestTime(check);
+            ZoneID   reqZone = CheckAvailability::GetRequiredZone(check);
+
+            if (availAt > simMaxTime) continue;
+            if (reqZone != ZoneID::COUNT && !simZonesReachable[static_cast<int>(reqZone)]) continue;
+
+            processedChecks.insert(ckey);
+            anyPhaseProgress = true;
+
+            Reward r = GetRewardForCheck(check);
+            bool isProgress = (r.type == RewardType::TimeChunk) ||
+                              (r.type == RewardType::AreaKey &&
+                               static_cast<ZoneID>(r.value) < ZoneID::COUNT &&
+                               !simZones[r.value]);
+            if (isProgress) phaseProgress.push_back(check);
+            else            phaseRewards.push_back(check);
         }
-        else
+
+        if (!anyPhaseProgress) break;
+        phaseNum++;
+
+        // ── Phase header ─────────────────────────────────────────
+        fprintf(f, "─────────────────────────────────────────────────────────\n");
+        fprintf(f, "PHASE %d\n", phaseNum);
+        if (cfg.timeChunks)
+            fprintf(f, "  Time:   up to %s\n", TimeManager::TicksToTimeString(simMaxTime).c_str());
+        fprintf(f, "  Zones: ");
+        bool firstZone = true;
+        for (int z = 0; z < static_cast<int>(ZoneID::COUNT); z++)
         {
-            fprintf(f, "UNLOCK REQUIREMENT: Obtain ANY time chunk reward (need %d total chunks)\n\n", chunksUnlocked);
-            
-            // Find ANY available time chunk reward
+            if (!simZonesReachable[z]) continue;
+            if (!firstZone) fprintf(f, ", ");
+            fprintf(f, "%s", AreaKeySystem::GetZoneName(static_cast<ZoneID>(z)));
+            firstZone = false;
+        }
+        fprintf(f, "\n\n");
+
+        // ── Progress checks ───────────────────────────────────────
+        if (!phaseProgress.empty())
+        {
+            fprintf(f, "  ★ Progress (%d):\n", (int)phaseProgress.size());
+            int previewChunks = simChunks;
+            for (const auto& check : phaseProgress)
+            {
+                std::string name    = CheckAvailability::GetCheckName(check);
+                Reward      r       = GetRewardForCheck(check);
+                ZoneID      reqZone = CheckAvailability::GetRequiredZone(check);
+                bool needsKey = (reqZone != ZoneID::COUNT && reqZone != ZoneID::ParadisePlaza);
+
+                if (r.type == RewardType::TimeChunk)
+                {
+                    previewChunks++;
+                    std::string newLimit = (previewChunks <= totalChunks)
+                        ? TimeManager::TicksToTimeString(TimeManager::GetChunk(mode, previewChunks - 1).endTick)
+                        : "end of game";
+                    if (needsKey)
+                        fprintf(f, "    %s  →  Time Chunk  (unlocks to %s)  [%s key]\n",
+                                name.c_str(), newLimit.c_str(), AreaKeySystem::GetZoneName(reqZone));
+                    else
+                        fprintf(f, "    %s  →  Time Chunk  (unlocks to %s)\n",
+                                name.c_str(), newLimit.c_str());
+                }
+                else if (r.type == RewardType::AreaKey)
+                {
+                    const char* granted = AreaKeySystem::GetZoneName(static_cast<ZoneID>(r.value));
+                    if (needsKey)
+                        fprintf(f, "    %s  →  Area Key: %s  [%s key]\n",
+                                name.c_str(), granted, AreaKeySystem::GetZoneName(reqZone));
+                    else
+                        fprintf(f, "    %s  →  Area Key: %s\n", name.c_str(), granted);
+                }
+            }
+            fprintf(f, "\n");
+        }
+
+        // ── Reward checks ─────────────────────────────────────────
+        if (!phaseRewards.empty())
+        {
+            fprintf(f, "  Rewards (%d):\n", (int)phaseRewards.size());
+            for (const auto& check : phaseRewards)
+            {
+                std::string name    = CheckAvailability::GetCheckName(check);
+                Reward      r       = GetRewardForCheck(check);
+                ZoneID      reqZone = CheckAvailability::GetRequiredZone(check);
+                bool needsKey = (reqZone != ZoneID::COUNT && reqZone != ZoneID::ParadisePlaza);
+
+                const char* typeName = "Unknown";
+                switch (r.type)
+                {
+                    case RewardType::LevelUp:       typeName = "Level Up";       break;
+                    case RewardType::BatteryRefill: typeName = "Battery Refill"; break;
+                    case RewardType::SetItem:       typeName = "Set Item";       break;
+                    case RewardType::Costume:       typeName = "Costume";        break;
+                    default: break;
+                }
+                if (needsKey)
+                    fprintf(f, "    %s  →  %s  [%s key]\n",
+                            name.c_str(), typeName, AreaKeySystem::GetZoneName(reqZone));
+                else
+                    fprintf(f, "    %s  →  %s\n", name.c_str(), typeName);
+            }
+            fprintf(f, "\n");
+        }
+
+        // ── Apply progress events ─────────────────────────────────
+        bool anyUnlock = false;
+        for (const auto& check : phaseProgress)
+        {
+            Reward r = GetRewardForCheck(check);
+            if (r.type == RewardType::TimeChunk)
+            {
+                simChunks++;
+                if (simChunks <= totalChunks)
+                {
+                    simMaxTime = TimeManager::GetChunk(mode, simChunks - 1).endTick;
+                    if (!anyUnlock) { fprintf(f, "  Unlocks:\n"); anyUnlock = true; }
+                    fprintf(f, "    → Time extended to %s\n",
+                            TimeManager::TicksToTimeString(simMaxTime).c_str());
+                }
+            }
+            else if (r.type == RewardType::AreaKey)
+            {
+                ZoneID z = static_cast<ZoneID>(r.value);
+                if (z < ZoneID::COUNT && !simZones[static_cast<int>(z)])
+                {
+                    simZones[static_cast<int>(z)] = true;
+                    if (!anyUnlock) { fprintf(f, "  Unlocks:\n"); anyUnlock = true; }
+                    fprintf(f, "    → Zone: %s\n", AreaKeySystem::GetZoneName(z));
+                }
+            }
+        }
+        if (anyUnlock) fprintf(f, "\n");
+
+        fprintf(f, "  Total this phase: %d progress + %d rewards\n\n",
+                (int)phaseProgress.size(), (int)phaseRewards.size());
+    }
+
+    // ── Final status ──────────────────────────────────────────────
+    fprintf(f, "─────────────────────────────────────────────────────────\n");
+    if (!cfg.timeChunks || simChunks >= totalChunks)
+        fprintf(f, "✓  SEED IS BEATABLE\n\n");
+    else
+        fprintf(f, "✗  STUCK at %d / %d time chunks — seed may be unbeatable\n\n",
+                simChunks, totalChunks);
+    
+    // Area key progression
+    fprintf(f, "═══════════════════════════════════════════════════════════\n");
+    fprintf(f, "  AREA KEY PROGRESSION\n");
+    fprintf(f, "═══════════════════════════════════════════════════════════\n\n");
+
+    if (!cfg.areaKeyRewards)
+    {
+        fprintf(f, "Area key rewards disabled — all zones open from start.\n\n");
+    }
+    else
+    {
+        fprintf(f, "Zone key sources (which check grants each area key):\n\n");
+        for (int z = 0; z < static_cast<int>(ZoneID::COUNT); z++)
+        {
+            ZoneID zone = static_cast<ZoneID>(z);
+            if (zone == ZoneID::ParadisePlaza) continue;
+
             bool found = false;
-            CheckId foundCheck = {CheckType::PPSticker, 0};
-            Reward foundReward = {RewardType::None, 0};
-            uint32_t foundAvailableAt = 0;
-            
             for (const auto& check : s_allChecks)
             {
                 Reward reward = GetRewardForCheck(check);
-                
-                // Is this ANY time chunk reward we haven't used yet?
-                if (reward.type == RewardType::TimeChunk)
+                if (reward.type == RewardType::AreaKey && static_cast<ZoneID>(reward.value) == zone)
                 {
-                    uint64_t checkKey = ((uint64_t)check.type << 32) | check.id;
-                    
-                    // Skip if already used
-                    if (usedTimeChunks.count(checkKey))
-                        continue;
-                    
-                    uint32_t availableAt = CheckAvailability::GetEarliestTime(check);
-                    
-                    // Can we get this before current time limit?
-                    if (availableAt <= currentMaxTime)
-                    {
-                        foundCheck = check;
-                        foundReward = reward;
-                        foundAvailableAt = availableAt;
-                        found = true;
-                        
-                        // Mark as used for next iteration
-                        usedTimeChunks.insert(checkKey);
-                        chunksUnlocked++;
-                        
-                        // Update time limit
-                        auto nextChunk = TimeManager::GetChunk(mode, chunksUnlocked - 1);
-                        currentMaxTime = nextChunk.endTick;
-                        
-                        break;
-                    }
+                    std::string checkName   = CheckAvailability::GetCheckName(check);
+                    uint32_t    availAt     = CheckAvailability::GetEarliestTime(check);
+                    ZoneID      reqZone     = CheckAvailability::GetRequiredZone(check);
+                    bool        needsKey    = (reqZone != ZoneID::COUNT && reqZone != ZoneID::ParadisePlaza);
+
+                    if (needsKey)
+                        fprintf(f, "  %s  ←  %s [requires %s key] (available: %s)\n",
+                                AreaKeySystem::GetZoneName(zone), checkName.c_str(),
+                                AreaKeySystem::GetZoneName(reqZone),
+                                TimeManager::TicksToTimeString(availAt).c_str());
+                    else
+                        fprintf(f, "  %s  ←  %s (available: %s)\n",
+                                AreaKeySystem::GetZoneName(zone), checkName.c_str(),
+                                TimeManager::TicksToTimeString(availAt).c_str());
+                    found = true;
+                    break;
                 }
             }
-            
-            if (found)
-            {
-                std::string checkName = CheckAvailability::GetCheckName(foundCheck);
-                
-                fprintf(f, "  Reward Location: %s (Time Chunk %d)\n", 
-                        checkName.c_str(), foundReward.value);
-                fprintf(f, "  Available at: %s\n", 
-                        TimeManager::TicksToTimeString(foundAvailableAt).c_str());
-                fprintf(f, "  Previous time limit: %s\n",
-                        TimeManager::TicksToTimeString(chunk.startTick).c_str());
-                fprintf(f, "  New time limit: %s\n",
-                        TimeManager::TicksToTimeString(currentMaxTime).c_str());
-                fprintf(f, "  Status: ✓ OBTAINABLE\n\n");
-            }
-            else
-            {
-                fprintf(f, "  ERROR: No available time chunk reward found!\n");
-                fprintf(f, "  Current time limit: %s\n",
-                        TimeManager::TicksToTimeString(currentMaxTime).c_str());
-                fprintf(f, "  Status: ✗ LOCKED (SEED INVALID)\n\n");
-            }
+            if (!found)
+                fprintf(f, "  %s  ←  NOT IN REWARD POOL\n", AreaKeySystem::GetZoneName(zone));
         }
-        
-        // List available checks in this time period
-        fprintf(f, "Checks Available During This Period:\n");
-        
-        int availableCount = 0;
-        for (const auto& check : s_allChecks)
-        {
-            uint32_t availableAt = CheckAvailability::GetEarliestTime(check);
-            
-            // Is this check available during this chunk?
-            if (availableAt >= chunk.startTick && availableAt < chunk.endTick)
-            {
-                Reward reward = GetRewardForCheck(check);
-                
-                // Get the readable name
-                std::string checkName = CheckAvailability::GetCheckName(check);
-                
-                const char* rewardTypeName = "";
-                switch (reward.type)
-                {
-                    case RewardType::LevelUp:       rewardTypeName = "Level Up"; break;
-                    case RewardType::BatteryRefill: rewardTypeName = "Battery Refill"; break;
-                    case RewardType::TimeChunk:
-                        rewardTypeName = "Time Chunk";
-                        fprintf(f, "  - %s → %s %d\n",
-                                checkName.c_str(), rewardTypeName, reward.value);
-                        availableCount++;
-                        continue;
-                    case RewardType::AreaKey:
-                        rewardTypeName = "Area Key";
-                        fprintf(f, "  - %s → %s (zone %d)\n",
-                                checkName.c_str(), rewardTypeName, reward.value);
-                        availableCount++;
-                        continue;
-                    case RewardType::SetItem:       rewardTypeName = "Set Item"; break;
-                    default:                        rewardTypeName = "None"; break;
-                }
-                
-                fprintf(f, "  - %s → %s\n", checkName.c_str(), rewardTypeName);
-                availableCount++;
-            }
-        }
-        
-        if (availableCount == 0)
-        {
-            fprintf(f, "  (None)\n");
-        }
-        
-        fprintf(f, "\nTotal: %d checks available\n\n", availableCount);
+        fprintf(f, "\n");
     }
-    
+
     // Summary statistics
     fprintf(f, "═══════════════════════════════════════════════════════════\n");
     fprintf(f, "  REWARD DISTRIBUTION SUMMARY\n");
     fprintf(f, "═══════════════════════════════════════════════════════════\n\n");
     
-    int levelUps = 0, batteries = 0, timeChunks = 0, setItems = 0, areaKeys = 0;
+    int levelUps = 0, batteries = 0, timeChunks = 0, setItems = 0, areaKeys = 0, costumes = 0;
     for (const auto& pair : s_rewardMap)
     {
         switch (pair.second.type)
@@ -528,6 +665,7 @@ void CheckSystem::WriteSeedAnalysisToFile()
             case RewardType::TimeChunk:     timeChunks++; break;
             case RewardType::SetItem:       setItems++; break;
             case RewardType::AreaKey:       areaKeys++; break;
+            case RewardType::Costume:       costumes++; break;
             default: break;
         }
     }
@@ -537,7 +675,8 @@ void CheckSystem::WriteSeedAnalysisToFile()
     fprintf(f, "Time Chunks: %d\n", timeChunks);
     fprintf(f, "Area Keys: %d\n", areaKeys);
     fprintf(f, "Set Items: %d\n", setItems);
-    fprintf(f, "\nTotal Rewards: %d\n", levelUps + batteries + timeChunks + areaKeys + setItems);
+    fprintf(f, "Costumes: %d\n", costumes);
+    fprintf(f, "\nTotal Rewards: %d\n", levelUps + batteries + timeChunks + areaKeys + setItems + costumes);
     
     fclose(f);
     
@@ -648,12 +787,12 @@ void CheckSystem::Initialize()
         RegisterCheckRange(CheckType::PsychopathPhoto, 0x6E6, 0x6E9);  // Isabella + Hall Family (no 0x6E1)
     }
 
-    if (cfg.clothingChecks)
+    if (cfg.costumeChecks)
     {
-        // One check per physical store location — count driven by kClothingDB row count
-        uint32_t count = CheckAvailability::GetClothingCheckCount();
+        // One check per physical store location — count driven by kCostumeDB row count
+        uint32_t count = CheckAvailability::GetCostumeCheckCount();
         if (count > 0)
-            RegisterCheckRange(CheckType::Clothing, 1, count);
+            RegisterCheckRange(CheckType::Costume, 1, count);
     }
 
     // Build the check list from registered ranges
@@ -723,6 +862,7 @@ void CheckSystem::SetSeed(uint32_t seed)
     RebuildCheckList();
     GenerateRewardMap();
     SaveSeedToFile();
+    WriteSeedAnalysisToFile();
     ResetRewardSlots();
 
     s_state = (prev == CheckSystemState::READY) ? CheckSystemState::READY : prev;

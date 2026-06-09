@@ -8,8 +8,8 @@
 #include "MtFramework/Game/sMain.h"
 
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/LevelUpRewardSystem.h"
-#include "DeadRisingEx/MtFramework/Randomiser/Rewards/ClothingRewardSystem.h"
-#include "DeadRisingEx/MtFramework/Randomiser/Checks/ClothingCheck.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/CostumeRewardSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Checks/CostumeCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/CaseCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/FastFrank.h"
@@ -114,7 +114,7 @@ void* __stdcall Hook_uPlayer_ctor(void* thisptr)
 
     sprintf_s(buf, "[HOOK] Calling SetStateMachineObj(%p)", thisptr);
     LogLine(buf);
-    ClothingCheck::SetStateMachineObj(thisptr);
+    CostumeCheck::SetStateMachineObj(thisptr);
     LogLine("[HOOK] SetStateMachineObj done");
 
     if (RandomiserConfig::Get().randomiseStartingOutfit)
@@ -152,7 +152,7 @@ void uPlayerImpl::RegisterTypeInfo()
     DetourAttach((void**)&SetPlayerLevel, Hook_SetPlayerLevel);
     DetourAttach((void**)&originalXPAccumulator, Hook_XPAccumulator);
     DetourAttach((void**)&originalLevelUpCallback, Hook_LevelUpCallback);
-    ClothingCheck::InitializeHooks();
+    CostumeCheck::InitializeHooks();
     
     
     // Hook game state tick to capture the game state manager

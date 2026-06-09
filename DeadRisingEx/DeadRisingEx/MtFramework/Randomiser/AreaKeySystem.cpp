@@ -119,6 +119,43 @@ uint32_t AreaKeySystem::GetBlockFallback(uint32_t from, uint32_t to)
     return from;  // unlisted transition: default to source area
 }
 
+std::vector<ZoneID> AreaKeySystem::GetAdjacentZones(ZoneID zone)
+{
+    // Derived from the GetBlockFallback transition table — every (from,to) pair
+    // in that table implies a physical connection between those two zones.
+    switch (zone)
+    {
+    case ZoneID::ParadisePlaza:
+        return { ZoneID::LeisurePark, ZoneID::EntrancePlaza, ZoneID::ColbysMovieland, ZoneID::MaintenanceTunnel };
+    case ZoneID::LeisurePark:
+        return { ZoneID::ParadisePlaza, ZoneID::MaintenanceTunnel, ZoneID::NorthPlaza, ZoneID::FoodCourt };
+    case ZoneID::EntrancePlaza:
+        return { ZoneID::ParadisePlaza, ZoneID::AlFrescaPlaza, ZoneID::MaintenanceTunnel };
+    case ZoneID::AlFrescaPlaza:
+        return { ZoneID::EntrancePlaza, ZoneID::FoodCourt, ZoneID::MaintenanceTunnel };
+    case ZoneID::FoodCourt:
+        return { ZoneID::AlFrescaPlaza, ZoneID::WonderlandPlaza, ZoneID::LeisurePark, ZoneID::MaintenanceTunnel };
+    case ZoneID::WonderlandPlaza:
+        return { ZoneID::FoodCourt, ZoneID::NorthPlaza, ZoneID::MaintenanceTunnel };
+    case ZoneID::NorthPlaza:
+        return { ZoneID::WonderlandPlaza, ZoneID::LeisurePark, ZoneID::CrislipsHomeSaloon, ZoneID::SeonsFood, ZoneID::MaintenanceTunnel };
+    case ZoneID::MaintenanceTunnel:
+        return { ZoneID::LeisurePark, ZoneID::EntrancePlaza, ZoneID::ParadisePlaza,
+                 ZoneID::WonderlandPlaza, ZoneID::FoodCourt, ZoneID::AlFrescaPlaza,
+                 ZoneID::SeonsFood, ZoneID::NorthPlaza, ZoneID::MeatProcessing };
+    case ZoneID::MeatProcessing:
+        return { ZoneID::MaintenanceTunnel };
+    case ZoneID::CrislipsHomeSaloon:
+        return { ZoneID::NorthPlaza };
+    case ZoneID::SeonsFood:
+        return { ZoneID::NorthPlaza, ZoneID::MaintenanceTunnel };
+    case ZoneID::ColbysMovieland:
+        return { ZoneID::ParadisePlaza };
+    default:
+        return {};
+    }
+}
+
 const char* AreaKeySystem::GetZoneName(ZoneID zone)
 {
     switch (zone)

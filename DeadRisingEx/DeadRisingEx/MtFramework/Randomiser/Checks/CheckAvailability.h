@@ -22,8 +22,8 @@ public:
     static bool     IsAvailableAt(CheckId check, uint32_t time);
     static std::string GetCheckName(CheckId check);
 
-    static const std::vector<uint32_t>* GetClothingCheckIds(uint32_t costumeId, ZoneID zone);
-    static uint32_t GetClothingCheckCount();
+    static const std::vector<uint32_t>* GetCostumeCheckIds(uint32_t costumeId, ZoneID zone);
+    static uint32_t GetCostumeCheckCount();
 
 private:
     static std::unordered_map<CheckId, CheckAvailabilityInfo, CheckIdHash> s_availabilityDB;
@@ -31,6 +31,6 @@ private:
     static void RegisterPPStickerTimes();
     static void RegisterSurvivorTimes();
     static void RegisterPsychopathTimes();
-    static void RegisterClothingTimes();
-    static void BuildClothingLookup();
+    static void RegisterCostumeTimes();
+    static void BuildCostumeLookup();
 };

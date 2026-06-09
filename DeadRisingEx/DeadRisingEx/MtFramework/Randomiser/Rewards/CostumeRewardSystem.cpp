@@ -1,8 +1,8 @@
-#include "ClothingReward.h"
-#include "ClothingRewardSystem.h"
+#include "CostumeReward.h"
+#include "CostumeRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/CheckSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/ChecksManager.h"
-#include "DeadRisingEx/MtFramework/Randomiser/Rewards/ClothingReward.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/CostumeReward.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include "../InputSystem.h"
 
@@ -119,7 +119,7 @@ static const CostumeEntry g_costumePool[] =
 //  Slot state
 // ─────────────────────────────────────────────
 
-static const int MAX_CLOTHING_REWARDS = COSTUME_POOL_SIZE;
+static const int MAX_COSTUME_REWARDS = COSTUME_POOL_SIZE;
 static CostumeEntry g_rewardSlots[COSTUME_POOL_SIZE] = {};
 static int   g_nextSlot         = 0;
 static bool  g_slotsInitialized = false;
@@ -146,13 +146,13 @@ static int RngRange(int min, int max)
 //  Slot generation
 // ─────────────────────────────────────────────
 
-void GenerateClothingRewardSlots()
+void GenerateCostumeRewardSlots()
 {
     if (g_slotsInitialized) return;
 
     uint32_t seed = CheckSystem::GetSeed();
     if (seed == 0)
-        LogLine("[ClothingRewardSystem] Warning: seed is 0");
+        LogLine("[CostumeRewardSystem] Warning: seed is 0");
 
     // Different RNG offset from item system
     RngSeed(seed ^ 0xC0FFEE00);
@@ -173,12 +173,12 @@ void GenerateClothingRewardSlots()
     g_nextSlot         = 0;
 
     char buf[64];
-    sprintf_s(buf, "[ClothingRewardSystem] %d slots generated for seed %u",
+    sprintf_s(buf, "[CostumeRewardSystem] %d slots generated for seed %u",
               COSTUME_POOL_SIZE, seed);
     LogLine(buf);
 }
 
-void ResetClothingRewardSlots()
+void ResetCostumeRewardSlots()
 {
     g_slotsInitialized = false;
     g_nextSlot         = 0;
@@ -188,24 +188,24 @@ void ResetClothingRewardSlots()
 //  Public API
 // ─────────────────────────────────────────────
 
-ClothingRewardResult GiveNextClothingReward()
+CostumeRewardResult GiveNextCostumeReward()
 {
     if (!g_slotsInitialized)
-        GenerateClothingRewardSlots();
+        GenerateCostumeRewardSlots();
 
     if (g_nextSlot >= COSTUME_POOL_SIZE)
     {
-        LogLine("[ClothingRewardSystem] No more clothing rewards");
+        LogLine("[CostumeRewardSystem] No more costume rewards");
         return { -1, nullptr };
     }
 
     const CostumeEntry& entry = g_rewardSlots[g_nextSlot];
-    ClothingReward::GiveCostume(entry.slot, entry.id);
+    CostumeReward::GiveCostume(entry.slot, entry.id);
 
     SaveStateManager::SetRewardCostume(entry.slot, entry.id);
 
     char buf[128];
-    sprintf_s(buf, "[ClothingRewardSystem] Gave slot %d: %s (slot=%d id=%d)",
+    sprintf_s(buf, "[CostumeRewardSystem] Gave slot %d: %s (slot=%d id=%d)",
               g_nextSlot, entry.name, entry.slot, entry.id);
     LogLine(buf);
 
@@ -278,7 +278,7 @@ void ApplyRandomStartingOutfit()
         sprintf_s(buf, "[OUTFIT] Slot %d: pick=%d id=%d — calling GiveCostume", slot, pick, id);
         LogLine(buf);
 
-        ClothingReward::GiveCostume((uint8_t)slot, id);
+        CostumeReward::GiveCostume((uint8_t)slot, id);
 
         sprintf_s(buf, "[OUTFIT] Slot %d: GiveCostume returned", slot);
         LogLine(buf);
@@ -296,12 +296,12 @@ void ReapplyRewardedCostumes()
     {
         if (!SaveStateManager::HasRewardCostume(slot)) continue;
         uint8_t id = SaveStateManager::GetRewardCostumeId(slot);
-        ClothingReward::GiveCostume((uint8_t)slot, id);
+        CostumeReward::GiveCostume((uint8_t)slot, id);
         char buf[96];
-        sprintf_s(buf, "[ClothingRewardSystem] Reapplied reward costume slot=%d id=%d", slot, id);
+        sprintf_s(buf, "[CostumeRewardSystem] Reapplied reward costume slot=%d id=%d", slot, id);
         LogLine(buf);
         any = true;
     }
     if (!any)
-        LogLine("[ClothingRewardSystem] No reward costumes to reapply");
+        LogLine("[CostumeRewardSystem] No reward costumes to reapply");
 }
