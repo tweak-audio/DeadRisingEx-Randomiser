@@ -2,6 +2,7 @@
 #include "PsychopathPhotoCheck.h"
 #include "PPStickerCheck.h"
 #include "CostumeCheck.h"
+#include "../KeyItemCheck.h"
 
 #pragma once
 #include <cstdint>
@@ -21,7 +22,7 @@ constexpr int BATTERY_REFILL_REWARDS = 10;
 constexpr int AREA_KEY_REWARDS = 11;  // One per zone (COUNT), excluding ParadisePlaza (auto-given)
 constexpr int COSTUME_REWARDS_MIN = 30;
 
-constexpr int TOTAL_CHECKS = TOTAL_PPSTICKERS + TOTAL_SURVIVORS + TOTAL_PSYCHOPATHS + TOTAL_COSTUMES;
+constexpr int TOTAL_CHECKS = TOTAL_PPSTICKERS + TOTAL_SURVIVORS + TOTAL_PSYCHOPATHS + TOTAL_COSTUMES + TOTAL_KEY_ITEMS;
 
 // ─────────────────────────────────────────────
 //  Check types
@@ -33,6 +34,7 @@ enum class CheckType : uint32_t
     SurvivorJoin        = 2,
     PsychopathPhoto     = 3,
     Costume             = 4,
+    KeyItem             = 5,
 };
 
 // ─────────────────────────────────────────────
@@ -47,6 +49,7 @@ enum class RewardType : uint32_t
     TimeChunk       = 4,  // Now unified - mode determined at runtime
     Costume         = 5,
     AreaKey         = 6,  // value = ZoneID index
+    KeyItem         = 7,  // value = keyId (see KeyItemCheck::kKeyEvents)
 };
 // ─────────────────────────────────────────────
 //  Reward descriptor

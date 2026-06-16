@@ -48,6 +48,7 @@
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\CrashHandler.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\FastFrank.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\InputSystem.cpp" />
+    <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\KeyItemCheck.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\TimeManager.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\AreaKeySystem.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\AreaTransitionHook.cpp" />
@@ -70,6 +71,7 @@
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\Rewards\RewardNotif.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\Rewards\CostumeReward.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\Rewards\CostumeRewardSystem.cpp" />
+    <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\Rewards\KeyItemReward.cpp" />
     <ClCompile Include="DeadRisingEx\Utilities\DebugLog.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="DeadRisingEx\ModConfig.cpp" />

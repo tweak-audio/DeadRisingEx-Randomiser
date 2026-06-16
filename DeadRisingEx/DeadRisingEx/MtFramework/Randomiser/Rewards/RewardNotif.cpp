@@ -74,6 +74,14 @@ static const char* GetRewardText(RewardType type, const char* rewardName, int va
             return s_buf;
         }
 
+        case RewardType::KeyItem:
+            if (rewardName && *rewardName)
+            {
+                sprintf_s(s_buf, sizeof(s_buf), "KEY OBTAINED: %s!", rewardName);
+                return s_buf;
+            }
+            return "KEY OBTAINED!";
+
         default:
             return "REWARD!";
     }

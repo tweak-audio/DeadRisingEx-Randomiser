@@ -69,6 +69,7 @@ void RandomiserConfig::Load(const std::string& gameDir)
     // [Checks]
     costumeChecks  = ReadBool("Checks", "CostumeChecks",   true, p);
     areaKeyRewards = ReadBool("Checks", "AreaKeyRewards",  true, p);
+    keyItemRewards = ReadBool("Checks", "KeyItemRewards",  true, p);
     timeChunks     = ReadBool("Checks", "TimeChunks",      true, p);
     sixHourChunks  = ReadBool("Checks", "SixHourChunks",   true, p);
     fastFrank      = ReadBool("Checks", "FastFrank",        true, p);

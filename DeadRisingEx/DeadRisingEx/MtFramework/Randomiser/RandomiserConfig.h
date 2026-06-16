@@ -23,6 +23,7 @@ public:
     // ── Non-photo check type toggles ───────────────────────────────────────
     bool costumeChecks   = true;
     bool areaKeyRewards  = true;  // false = zones open from start, no AreaKey rewards
+    bool keyItemRewards  = true;  // false = key item pickups pass through to vanilla (no randomisation)
     bool timeChunks      = true;  // false = no time chunk rewards, time gating disabled
     bool sixHourChunks   = true;  // true = 6-hour mode (11 chunks), false = 12-hour mode (5 chunks)
     bool fastFrank       = true;  // false = normal Frank speed

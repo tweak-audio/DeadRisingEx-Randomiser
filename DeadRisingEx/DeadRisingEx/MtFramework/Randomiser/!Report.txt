@@ -1,43 +1,27 @@
 ### TODO: ###
-- add randomiser_config.file read system
-    - add toggles to randomiser options
-        - ranges of intensities???
-    -
 
 - hook cases
     - add to checks
     - (Is way harder than expected)
 
-- Lock areas and add "Key" as a reward 
-        - Way harder than expected..! piggy backing off the load_area console command currently
-        - needs full test with all loading zones
-    - will make it harder to access all checks
-    - will need to update check availability with locations
-
 - FULL TEST
 
-- transform into archipelago(?)
-- seperate randomiser mod from the original dll 
-    - add method for original dll to read code altering mods?
-
 ### TO IMPROVE: ###
-
-- improve key availability check, just found maintanance key in MT
-
-- if clothing reward (FIX!!!)
-    - it resets after going through a loading zone (Fixed? needs testing)
 
 - Clean up debug code
 - Clean up testing code when releasing!!!!!!
 
 ### Ideas: ###
 
+- transform into archipelago(?)
+
+- seperate randomiser mod from the original dll 
+    - add method for original dll to read code altering mods? (API and plugins?)
+
 - use games built in rng to affect randomiser seed generation????
 
 - hook item pickup (individual items on the floor)?
     - add to checks
-
--randomise maintanance key? other blue items?
 
 - Checks for survivors joined
 - Checks for survivors escorted back
@@ -56,14 +40,39 @@
 
 - Consuming each food check??
 
-- level up as checks
+- level up as checks?
     - alternative to level up rewards system
     - could split stat upgrades into rewards?
 
 
 DONE:
 
-- we dont need to include PP as a reward (Fixed)
+- randomise key items
+    - maintanance tunnel key (yes) (done)
+    - shortcut between PP and WP (not a key item, would need another method?)
+    - storage room in cinema? (maybe)
+    - empty shop in north plaza? (maybe)
+    - handcuff key? (maybe)
+    - pharmacy key? (maybe)
+    - first aid box? (probably not)
+    - overtime key items? (probably not)
+
+- add randomiser_config.file read system (done)
+    - add toggles to randomiser options (done)
+        - ranges of intensities???
+
+- Lock areas and add "Key" as a reward (done, can be improved by blocking transition somehow but warping player back is fine for now)
+        - Way harder than expected..! piggy backing off the load_area console command currently
+        - needs full test with all loading zones (done)
+    - will make it harder to access all checks
+    - will need to update check availability with locations
+
+- improve key availability check, just found maintanance key in MT (Done)
+
+- if clothing reward (FIX!!!)
+    - it resets after going through a loading zone (Fixed? needs testing)
+
+- we dont need to include PPkey as a reward (Fixed)
 
 - check if seed exists and seed generation seem to be the wrong way round (Fixed)
     - fix creating new seed everytime game loads
@@ -89,18 +98,4 @@ DONE:
 
 - hook clothing (DONE)
     - add to checks
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

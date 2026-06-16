@@ -52,6 +52,54 @@ void LogLine(const char* text)
 }
 
 // ─────────────────────────────────────────────
+//  Player struct snapshot/diff — find unknown offsets
+//  F4 = snapshot, F5 = diff and log all changed bytes
+// ─────────────────────────────────────────────
+
+static constexpr int   SNAP_SIZE = 0x10000;
+static uint8_t         s_playerSnap[SNAP_SIZE] = {};
+static bool            s_snapTaken = false;
+
+static void TakePlayerSnapshot()
+{
+    if (!uPlayerInstance) { LogLine("[SNAP] No player instance"); return; }
+    memcpy(s_playerSnap, (uint8_t*)uPlayerInstance, SNAP_SIZE);
+    s_snapTaken = true;
+    LogLine("[SNAP] Snapshot taken");
+}
+
+static void DiffPlayerSnapshot()
+{
+    if (!uPlayerInstance) { LogLine("[SNAP] No player instance"); return; }
+    if (!s_snapTaken)     { LogLine("[SNAP] No snapshot — press F4 first"); return; }
+
+    const uint8_t* now = (uint8_t*)uPlayerInstance;
+
+    // Build a change map first
+    bool changed[SNAP_SIZE] = {};
+    for (int i = 0; i < SNAP_SIZE; i++)
+        changed[i] = (now[i] != s_playerSnap[i]);
+
+    // Only report bytes that are isolated — no adjacent byte also changed.
+    // This filters out floats/matrices/vectors which change 4+ bytes at once.
+    int count = 0;
+    char buf[64];
+    for (int i = 0; i < SNAP_SIZE; i++)
+    {
+        if (!changed[i]) continue;
+        bool neighbourChanged = (i > 0          && changed[i - 1])
+                             || (i < SNAP_SIZE-1 && changed[i + 1]);
+        if (neighbourChanged) continue;
+
+        sprintf_s(buf, "[SNAP] +0x%X: 0x%02X -> 0x%02X", i, s_playerSnap[i], now[i]);
+        LogLine(buf);
+        count++;
+    }
+    sprintf_s(buf, "[SNAP] %d isolated byte(s) changed", count);
+    LogLine(buf);
+}
+
+// ─────────────────────────────────────────────
 //  Seed input state
 // ─────────────────────────────────────────────
 
@@ -203,12 +251,17 @@ void HandleDebugInput()
     // F2 - Subtract 1 hour
     if (GetAsyncKeyState(VK_F2) & 1)
     {
-        char buf[128];
-        sprintf_s(buf, "[TIME] -1 hour (was: %s)", TimeManager::GetTimeString().c_str());
-        LogLine(buf);
-        //TimeManager::AddHours(-1);
-        sprintf_s(buf, "[TIME] Now: %s", TimeManager::GetTimeString().c_str());
-        LogLine(buf);
+        if (uPlayerInstance)
+        {
+            // Test both consistent candidates — set them to what they become after pickup
+            uint8_t* b237D = (uint8_t*)uPlayerInstance + 0x237D;
+            uint8_t* b1500 = (uint8_t*)uPlayerInstance + 0x1500;
+            *b237D &= ~0x08;
+            *b1500  = 0x04;
+            char buf[96];
+            sprintf_s(buf, "[TEST] 0x237D=0x%02X  0x1500=0x%02X", *b237D, *b1500);
+            LogLine(buf);
+        }
     }
 
     // F3 - Set time to 12:00 PM (noon)
@@ -219,12 +272,8 @@ void HandleDebugInput()
     }
 
     if (GetAsyncKeyState(VK_F4) & 1)
-    {
-        
-    }
+        TakePlayerSnapshot();
 
     if (GetAsyncKeyState(VK_F5) & 1)
-    {
-
-    }
+        DiffPlayerSnapshot();
 }

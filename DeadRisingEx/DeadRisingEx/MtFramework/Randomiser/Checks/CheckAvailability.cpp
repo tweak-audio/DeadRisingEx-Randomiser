@@ -32,6 +32,16 @@ void CheckAvailability::Initialize()
     RegisterCostumeTimes();
     BuildCostumeLookup();
 
+    // Key items — zones need verifying once all 4 event IDs are confirmed in-game
+    // id=0: uOm0028 (MT key, event 0x822) — found inside MaintenanceTunnel
+    // id=1: uOm0081 (event TBD) — zone TBD
+    // id=2: uOm0084 (event TBD) — zone TBD
+    // id=3: uOm00de (event TBD) — zone TBD
+    s_availabilityDB[{ CheckType::KeyItem, 0 }] = { TimeManager::GAME_START_TICK, false, ZoneID::MaintenanceTunnel, "MT Key" };
+    s_availabilityDB[{ CheckType::KeyItem, 1 }] = { TimeManager::GAME_START_TICK, false, ZoneID::COUNT,             "Key Item uOm0081" };
+    s_availabilityDB[{ CheckType::KeyItem, 2 }] = { TimeManager::GAME_START_TICK, false, ZoneID::COUNT,             "Key Item uOm0084" };
+    s_availabilityDB[{ CheckType::KeyItem, 3 }] = { TimeManager::GAME_START_TICK, false, ZoneID::COUNT,             "Key Item uOm00de" };
+
     char buf[128];
     sprintf_s(buf, "[AVAILABILITY] Registered %d checks", (int)s_availabilityDB.size());
     LogLine(buf);
@@ -637,6 +647,9 @@ std::string CheckAvailability::GetCheckName(CheckId check)
             break;
         case CheckType::Costume:
             sprintf_s(buf, "Costume #%u", check.id);
+            break;
+        case CheckType::KeyItem:
+            sprintf_s(buf, "Key Item #%u", check.id);
             break;
         default:
             sprintf_s(buf, "Unknown Check #%u", check.id);

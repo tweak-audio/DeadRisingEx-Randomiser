@@ -56,6 +56,7 @@ uint32_t AreaKeySystem::GetBlockFallback(uint32_t from, uint32_t to)
         { 0x200, 0x700, 0x200 },  // PP → LP
         { 0x200, 0x100, 0x200 },  // PP → EP
         { 0x200, 0x503, 0x200 },  // PP → Movieland
+        { 0x200, 0x600, 0x200 },  // PP → MT
 
         // ── Leisure Park (0x700) ─────────────────────────────
         { 0x700, 0x200, 0x700 },  // LP → PP
@@ -68,6 +69,7 @@ uint32_t AreaKeySystem::GetBlockFallback(uint32_t from, uint32_t to)
         // ── Entrance Plaza (0x100) ───────────────────────────
         { 0x100, 0x200, 0x100 },  // EP → PP
         { 0x100, 0x900, 0x100 },  // EP → AFP
+        { 0x100, 0x600, 0x100 },  // EP → MT
 
         // ── Al Fresca Plaza (0x900) ──────────────────────────
         { 0x900, 0x100, 0x900 },  // AFP → EP
@@ -77,6 +79,7 @@ uint32_t AreaKeySystem::GetBlockFallback(uint32_t from, uint32_t to)
         // ── Food Court (0xa00) ───────────────────────────────
         { 0xa00, 0x900, 0xa00 },  // FC → AFP
         { 0xa00, 0x300, 0xa00 },  // FC → WP
+        { 0xa00, 0x600, 0xa00 },  // FC → MT
 
         // ── Wonderland Plaza (0x300) ─────────────────────────
         { 0x300, 0xa00, 0x300 },  // WP → FC
@@ -88,6 +91,7 @@ uint32_t AreaKeySystem::GetBlockFallback(uint32_t from, uint32_t to)
         { 0x400, 0x700, 0x400 },  // NP → LP
         { 0x400, 0x501, 0x400 },  // NP → Crislip's
         { 0x400, 0x500, 0x400 },  // NP → Seon's
+        { 0x400, 0x600, 0x400 },  // NP → MT
 
         // ── Maintenance Tunnel (0x600) — many entry points ───
         { 0x600, 0x700, 0x600 },  // MT → LP

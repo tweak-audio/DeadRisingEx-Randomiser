@@ -51,12 +51,14 @@
 
 void RegisterRandomiserConsoleCommands();
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/CostumeCheck.h"
+#include "DeadRisingEx/MtFramework/Randomiser/KeyItemCheck.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/SetItemRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/LevelUpRewardSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/CameraRefillReward.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/TimeChunkReward.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/RewardNotif.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Rewards/CostumeRewardSystem.h"
+#include "DeadRisingEx/MtFramework/Randomiser/Rewards/KeyItemReward.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
 
 
@@ -214,6 +216,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
         InitScoopPhotoHook();
         //InitPsychopathPhotoHook();
+        KeyItemCheck::Install();
 
         CheckSystem::OnCheckCompleted([](CheckId check, Reward reward)
         {
@@ -254,6 +257,13 @@ BOOL APIENTRY DllMain(HMODULE hModule,
                     AreaKeySystem::Get().GiveKey(static_cast<ZoneID>(reward.value));
                     ShowRewardNotification(RewardType::AreaKey, nullptr, reward.value);
                     break;
+
+                case RewardType::KeyItem:
+                    {
+                        const char* keyName = KeyItemReward::GrantKeyItem(reward.value);
+                        ShowRewardNotification(RewardType::KeyItem, keyName, reward.value);
+                        break;
+                    }
 
                 case RewardType::None:
                 default:

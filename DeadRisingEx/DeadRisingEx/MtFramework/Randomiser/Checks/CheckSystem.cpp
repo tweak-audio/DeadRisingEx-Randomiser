@@ -112,7 +112,7 @@ void CheckSystem::GenerateRewardMap()
 
     // Fixed rewards
     const RandomiserConfig& cfg = RandomiserConfig::Get();
-    std::vector<Reward> levelUps, batteries, timeChunks, areaKeys;
+    std::vector<Reward> levelUps, batteries, timeChunks, areaKeys, keyItems;
     for (int i = 0; i < LEVEL_UP_REWARDS; i++)
         levelUps.push_back({ RewardType::LevelUp, 0 });
     for (int i = 0; i < BATTERY_REFILL_REWARDS; i++)
@@ -131,19 +131,25 @@ void CheckSystem::GenerateRewardMap()
             areaKeys.push_back({ RewardType::AreaKey, i });  // value = ZoneID index
         }
     }
+    if (cfg.keyItemRewards)
+    {
+        for (int i = 0; i < TOTAL_KEY_ITEMS; i++)
+            keyItems.push_back({ RewardType::KeyItem, i });  // value = keyId
+    }
 
     // Randomly split remaining slots between costumes and set items
     int effectiveTimeChunkRewards = cfg.timeChunks ? (cfg.sixHourChunks ? 11 : 5) : 0;
     int effectiveAreaKeyRewards   = cfg.areaKeyRewards ? AREA_KEY_REWARDS : 0;
-    int remaining = total - LEVEL_UP_REWARDS - BATTERY_REFILL_REWARDS - effectiveTimeChunkRewards - effectiveAreaKeyRewards;
+    int effectiveKeyItemRewards   = cfg.keyItemRewards ? TOTAL_KEY_ITEMS : 0;
+    int remaining = total - LEVEL_UP_REWARDS - BATTERY_REFILL_REWARDS - effectiveTimeChunkRewards - effectiveAreaKeyRewards - effectiveKeyItemRewards;
     int maxCostume    = min(remaining, COSTUME_POOL_SIZE);  // can't exceed pool size
     int costumeCount  = RngRange(COSTUME_REWARDS_MIN, maxCostume + 1);
     int setItemCount  = remaining - costumeCount;
     s_setItemCount = setItemCount;
 
     char buf[128];
-    sprintf_s(buf, "[CHECKS] Reward split: %d time chunks, %d area keys, %d costumes, %d set items (seed %u)",
-              effectiveTimeChunkRewards, effectiveAreaKeyRewards, costumeCount, setItemCount, s_seed);
+    sprintf_s(buf, "[CHECKS] Reward split: %d time chunks, %d area keys, %d key items, %d costumes, %d set items (seed %u)",
+              effectiveTimeChunkRewards, effectiveAreaKeyRewards, effectiveKeyItemRewards, costumeCount, setItemCount, s_seed);
     LogLine(buf);
 
     std::vector<Reward> costumes, setItems;
@@ -176,9 +182,10 @@ void CheckSystem::GenerateRewardMap()
         }
     };
 
-    // Place time chunks first (most important for beatability), then area keys
+    // Place time chunks first (most important for beatability), then area keys and key items
     PlaceEvenly(timeChunks);
     PlaceEvenly(areaKeys);
+    PlaceEvenly(keyItems);
     PlaceEvenly(levelUps);
     PlaceEvenly(batteries);
     PlaceEvenly(costumes);
@@ -205,7 +212,7 @@ int CheckSystem::GetSetItemCount() { return s_setItemCount; }
 // BFS from PP through the zone graph. A zone is reachable if its key is held
 // AND there is a path to it from PP through already-reachable unlocked zones.
 // The PP-EP direct corridor is blocked until Day 2 7AM (19 hours from game start).
-static void ComputeReachableZones(const bool* zonesUnlocked, bool* zonesReachable, uint32_t currentTime)
+static void ComputeReachableZones(const bool* zonesUnlocked, bool* zonesReachable, uint32_t currentTime, bool mtKeyItemHeld)
 {
     static constexpr uint32_t EP_PATH_OPEN_TICK =
         TimeManager::GAME_START_TICK + 19 * TimeManager::TICKS_PER_HOUR;
@@ -227,6 +234,15 @@ static void ComputeReachableZones(const bool* zonesUnlocked, bool* zonesReachabl
                 int ti = static_cast<int>(to);
                 if (zonesReachable[ti]) continue;
                 if (!zonesUnlocked[ti]) continue;
+
+                // Mall zones ↔ MT requires the MT key item in both directions;
+                // LP and MeatProcessing are exempt
+                bool isLockedMtEdge =
+                    (from == ZoneID::MaintenanceTunnel &&
+                     to != ZoneID::LeisurePark && to != ZoneID::MeatProcessing) ||
+                    (to == ZoneID::MaintenanceTunnel &&
+                     from != ZoneID::LeisurePark && from != ZoneID::MeatProcessing);
+                if (isLockedMtEdge && !mtKeyItemHeld) continue;
 
                 // PP-EP corridor blocked before Day 2 7AM; use AFP or MT route instead
                 if (from == ZoneID::ParadisePlaza && to == ZoneID::EntrancePlaza &&
@@ -266,6 +282,7 @@ bool CheckSystem::IsSeedBeatable(bool quiet)
 
     bool zonesUnlocked[static_cast<int>(ZoneID::COUNT)] = {};
     zonesUnlocked[static_cast<int>(ZoneID::ParadisePlaza)] = true;
+    bool mtKeyUnlocked = false;
 
     std::unordered_set<uint64_t> usedChecks;
 
@@ -277,7 +294,7 @@ bool CheckSystem::IsSeedBeatable(bool quiet)
         anyProgress = false;
 
         bool zonesReachable[static_cast<int>(ZoneID::COUNT)] = {};
-        ComputeReachableZones(zonesUnlocked, zonesReachable, currentMaxTime);
+        ComputeReachableZones(zonesUnlocked, zonesReachable, currentMaxTime, mtKeyUnlocked);
 
         for (const auto& check : s_allChecks)
         {
@@ -323,6 +340,14 @@ bool CheckSystem::IsSeedBeatable(bool quiet)
                         LogLine(buf);
                     }
                 }
+            }
+            else if (reward.type == RewardType::KeyItem && reward.value == 0 && !mtKeyUnlocked)
+            {
+                usedChecks.insert(ckey);
+                mtKeyUnlocked = true;
+                anyProgress = true;
+                if (!quiet)
+                    LogLine("[SEED VALIDATION]   +KeyItem(MT) -> MT exits now usable");
             }
         }
     }
@@ -427,6 +452,7 @@ void CheckSystem::WriteSeedAnalysisToFile()
     uint32_t simMaxTime = cfg.timeChunks
                             ? TimeManager::GetChunk(mode, 0).endTick
                             : TimeManager::GetChunk(mode, totalChunks - 1).endTick;
+    bool simMtKeyUnlocked = false;
 
     bool simZones[static_cast<int>(ZoneID::COUNT)] = {};
     if (cfg.areaKeyRewards)
@@ -448,7 +474,7 @@ void CheckSystem::WriteSeedAnalysisToFile()
         anyPhaseProgress = false;
 
         bool simZonesReachable[static_cast<int>(ZoneID::COUNT)] = {};
-        ComputeReachableZones(simZones, simZonesReachable, simMaxTime);
+        ComputeReachableZones(simZones, simZonesReachable, simMaxTime, simMtKeyUnlocked);
 
         std::vector<CheckId> phaseProgress;
         std::vector<CheckId> phaseRewards;
@@ -471,7 +497,8 @@ void CheckSystem::WriteSeedAnalysisToFile()
             bool isProgress = (r.type == RewardType::TimeChunk) ||
                               (r.type == RewardType::AreaKey &&
                                static_cast<ZoneID>(r.value) < ZoneID::COUNT &&
-                               !simZones[r.value]);
+                               !simZones[r.value]) ||
+                              (r.type == RewardType::KeyItem && r.value == 0 && !simMtKeyUnlocked);
             if (isProgress) phaseProgress.push_back(check);
             else            phaseRewards.push_back(check);
         }
@@ -529,6 +556,14 @@ void CheckSystem::WriteSeedAnalysisToFile()
                     else
                         fprintf(f, "    %s  →  Area Key: %s\n", name.c_str(), granted);
                 }
+                else if (r.type == RewardType::KeyItem && r.value == 0)
+                {
+                    if (needsKey)
+                        fprintf(f, "    %s  →  MT Key (enables MT exits)  [%s key]\n",
+                                name.c_str(), AreaKeySystem::GetZoneName(reqZone));
+                    else
+                        fprintf(f, "    %s  →  MT Key (enables MT exits)\n", name.c_str());
+                }
             }
             fprintf(f, "\n");
         }
@@ -551,6 +586,7 @@ void CheckSystem::WriteSeedAnalysisToFile()
                     case RewardType::BatteryRefill: typeName = "Battery Refill"; break;
                     case RewardType::SetItem:       typeName = "Set Item";       break;
                     case RewardType::Costume:       typeName = "Costume";        break;
+                    case RewardType::KeyItem:       typeName = "Key Item";       break;
                     default: break;
                 }
                 if (needsKey)
@@ -587,6 +623,12 @@ void CheckSystem::WriteSeedAnalysisToFile()
                     if (!anyUnlock) { fprintf(f, "  Unlocks:\n"); anyUnlock = true; }
                     fprintf(f, "    → Zone: %s\n", AreaKeySystem::GetZoneName(z));
                 }
+            }
+            else if (r.type == RewardType::KeyItem && r.value == 0)
+            {
+                simMtKeyUnlocked = true;
+                if (!anyUnlock) { fprintf(f, "  Unlocks:\n"); anyUnlock = true; }
+                fprintf(f, "    → MT Key: exits from MT now usable\n");
             }
         }
         if (anyUnlock) fprintf(f, "\n");
@@ -655,7 +697,7 @@ void CheckSystem::WriteSeedAnalysisToFile()
     fprintf(f, "  REWARD DISTRIBUTION SUMMARY\n");
     fprintf(f, "═══════════════════════════════════════════════════════════\n\n");
     
-    int levelUps = 0, batteries = 0, timeChunks = 0, setItems = 0, areaKeys = 0, costumes = 0;
+    int levelUps = 0, batteries = 0, timeChunks = 0, setItems = 0, areaKeys = 0, costumes = 0, keyItems = 0;
     for (const auto& pair : s_rewardMap)
     {
         switch (pair.second.type)
@@ -666,6 +708,7 @@ void CheckSystem::WriteSeedAnalysisToFile()
             case RewardType::SetItem:       setItems++; break;
             case RewardType::AreaKey:       areaKeys++; break;
             case RewardType::Costume:       costumes++; break;
+            case RewardType::KeyItem:       keyItems++; break;
             default: break;
         }
     }
@@ -674,9 +717,10 @@ void CheckSystem::WriteSeedAnalysisToFile()
     fprintf(f, "Battery Refills: %d\n", batteries);
     fprintf(f, "Time Chunks: %d\n", timeChunks);
     fprintf(f, "Area Keys: %d\n", areaKeys);
+    fprintf(f, "Key Items: %d\n", keyItems);
     fprintf(f, "Set Items: %d\n", setItems);
     fprintf(f, "Costumes: %d\n", costumes);
-    fprintf(f, "\nTotal Rewards: %d\n", levelUps + batteries + timeChunks + areaKeys + setItems + costumes);
+    fprintf(f, "\nTotal Rewards: %d\n", levelUps + batteries + timeChunks + areaKeys + keyItems + setItems + costumes);
     
     fclose(f);
     
@@ -794,6 +838,10 @@ void CheckSystem::Initialize()
         if (count > 0)
             RegisterCheckRange(CheckType::Costume, 1, count);
     }
+
+    // Key items: uOm0028 (id=0), uOm0081 (id=1), uOm0084 (id=2), uOm00de (id=3)
+    if (cfg.keyItemRewards)
+        RegisterCheckRange(CheckType::KeyItem, 0, TOTAL_KEY_ITEMS - 1);
 
     // Build the check list from registered ranges
     RebuildCheckList();
