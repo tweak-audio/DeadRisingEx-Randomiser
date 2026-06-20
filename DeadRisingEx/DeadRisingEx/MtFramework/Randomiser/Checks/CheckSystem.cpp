@@ -832,9 +832,7 @@ void CheckSystem::Initialize()
             RegisterCheckRange(CheckType::Costume, 1, count);
     }
 
-    // Key items: uOm0028 (id=0), uOm0081 (id=1), uOm0084 (id=2), uOm00de (id=3)
-    if (cfg.keyItemRewards)
-        RegisterCheckRange(CheckType::KeyItem, 0, TOTAL_KEY_ITEMS - 1);
+    // Key items are reward-only — no check locations registered.
 
     // Build the check list from registered ranges
     RebuildCheckList();

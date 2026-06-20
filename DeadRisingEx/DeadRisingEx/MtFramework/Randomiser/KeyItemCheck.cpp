@@ -14,10 +14,8 @@ namespace KeyItemCheck
     // Fill in event IDs for uOm0081/0084/00de once confirmed in-game.
     const KeyEventEntry kKeyEvents[] =
     {
-        { 0x822, 0 },   // uOm0028 — MT key
-        // { 0xTBD, 1 },  // uOm0081
-        // { 0xTBD, 2 },  // uOm0084
-        // { 0xTBD, 3 },  // uOm00de
+        { 0x822, 0 },   // uOm0028 — MT key (confirmed)
+        //{ 0x883, 0 },   // Radio and map
     };
     const int kKeyEventCount = sizeof(kKeyEvents) / sizeof(kKeyEvents[0]);
 
@@ -38,8 +36,9 @@ namespace KeyItemCheck
 
     static void __stdcall Hook_GameEvent(int64_t manager, uint32_t event_id)
     {
-        // Capture manager on first call for use by KeyItemReward
-        if (s_manager == 0)
+        // Capture first non-zero manager for use by KeyItemReward / fire_event.
+        // Many events fire with manager=0 (non-item events), so only store non-zero.
+        if (s_manager == 0 && manager != 0)
             s_manager = manager;
 
         if (s_seenEvents.find(event_id) == s_seenEvents.end())
@@ -50,18 +49,10 @@ namespace KeyItemCheck
             LogLine(buf);
         }
 
+        // Key items are reward-only — suppress physical pickup so the MT key
+        // can only be received as a randomiser reward via KeyItemReward.
         if (IsKeyEvent(event_id))
-        {
-            for (int i = 0; i < kKeyEventCount; i++)
-            {
-                if (kKeyEvents[i].eventId == event_id)
-                {
-                    CheckSystem::CompleteCheck(CheckType::KeyItem, kKeyEvents[i].checkId);
-                    break;
-                }
-            }
             return;
-        }
 
         originalGameEvent(manager, event_id);
     }

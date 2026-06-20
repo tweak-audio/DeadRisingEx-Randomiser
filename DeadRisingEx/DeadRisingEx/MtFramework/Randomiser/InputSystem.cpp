@@ -2,6 +2,7 @@
 #include "InputSystem.h"
 #include "AreaKeySystem.h"
 #include "TimeManager.h"
+#include "KeyItemCheck.h"
 #include "Checks/CheckSystem.h"
 #include "Rewards/LevelUpRewardSystem.h"
 #include "Rewards/SetItemRewardSystem.h"
@@ -14,8 +15,6 @@
 #include "DeadRisingEx/Utilities/DebugLog.h"
 #include <Windows.h>
 #include <stdio.h>
-
-extern bool g_statsResolved;
 
 static HANDLE hRandomiserLog = INVALID_HANDLE_VALUE;
 static bool   g_logShuttingDown = false;
@@ -58,10 +57,22 @@ void LogLine(const char* text)
 }
 
 // ─────────────────────────────────────────────
-//  Player struct snapshot/diff — find unknown offsets
-//  F4 = snapshot, F5 = diff and log all changed bytes
+//  Game event queue — fired on game thread by HandleDebugInput
 // ─────────────────────────────────────────────
 
+static uint32_t s_pendingEventId = 0;
+
+void QueueGameEvent(uint32_t eventId)
+{
+    s_pendingEventId = eventId;
+}
+
+// ─────────────────────────────────────────────
+//  Player struct snapshot/diff — find unknown offsets
+//  Bind TakePlayerSnapshot/DiffPlayerSnapshot to keys to use.
+// ─────────────────────────────────────────────
+
+#if 0
 static constexpr int   SNAP_SIZE = 0x10000;
 static uint8_t         s_playerSnap[SNAP_SIZE] = {};
 static bool            s_snapTaken = false;
@@ -104,67 +115,7 @@ static void DiffPlayerSnapshot()
     sprintf_s(buf, "[SNAP] %d isolated byte(s) changed", count);
     LogLine(buf);
 }
-
-// ─────────────────────────────────────────────
-//  Seed input state
-// ─────────────────────────────────────────────
-
-static bool     s_enteringSeed  = false;
-static char     s_seedBuffer[16] = {};
-static int      s_seedLen        = 0;
-
-static void BeginSeedEntry()
-{
-    s_enteringSeed = true;
-    s_seedLen      = 0;
-    memset(s_seedBuffer, 0, sizeof(s_seedBuffer));
-    LogLine("[SEED] Type a number then press ENTER. ESC to cancel.");
-}
-
-static void HandleSeedEntry()
-{
-    // Number keys 0-9
-    for (int k = '0'; k <= '9'; k++)
-    {
-        if ((GetAsyncKeyState(k) & 1) && s_seedLen < 9)
-        {
-            s_seedBuffer[s_seedLen++] = (char)k;
-            s_seedBuffer[s_seedLen]   = '\0';
-
-            char buf[32];
-            sprintf_s(buf, "[SEED] > %s", s_seedBuffer);
-            LogLine(buf);
-        }
-    }
-
-    // ENTER — confirm seed
-    if (GetAsyncKeyState(VK_RETURN) & 1)
-    {
-        s_enteringSeed = false;
-
-        if (s_seedLen == 0)
-        {
-            LogLine("[SEED] No input — generating random seed.");
-            CheckSystem::SetSeed(0);
-        }
-        else
-        {
-            uint32_t seed = (uint32_t)atoi(s_seedBuffer);
-            CheckSystem::SetSeed(seed);
-
-            char buf[64];
-            sprintf_s(buf, "[SEED] Seed confirmed: %u", seed);
-            LogLine(buf);
-        }
-    }
-
-    // ESC — cancel
-    if (GetAsyncKeyState(VK_ESCAPE) & 1)
-    {
-        s_enteringSeed = false;
-        LogLine("[SEED] Seed entry cancelled.");
-    }
-}
+#endif
 
 // ─────────────────────────────────────────────
 //  Main input handler
@@ -172,16 +123,26 @@ static void HandleSeedEntry()
 
 void HandleDebugInput()
 {
+    // Fire any event queued from the console (console runs on render thread, not game thread)
+    if (s_pendingEventId != 0)
+    {
+        uint32_t id = s_pendingEventId;
+        s_pendingEventId = 0;
+        if (KeyItemCheck::originalGameEvent && KeyItemCheck::s_manager)
+        {
+            KeyItemCheck::originalGameEvent(KeyItemCheck::s_manager, id);
+            char buf[64];
+            sprintf_s(buf, "[EVENT] Fired queued event 0x%X", id);
+            LogLine(buf);
+        }
+        else
+        {
+            LogLine("[EVENT] Could not fire queued event — manager not ready");
+        }
+    }
 
     // Enforce time gating every frame
     TimeChunkReward::EnforceTimeGate();
-
-    // If player is typing a seed, handle that exclusively
-    if (s_enteringSeed)
-    {
-        HandleSeedEntry();
-        return;
-    }
 
     // ═══════════════════════════════════════════
     //  INPUT CONTROLS
@@ -240,7 +201,7 @@ void HandleDebugInput()
     // ═══════════════════════════════════════════
     //  ADDITIONAL SHORTCUTS (Optional)
     // ═══════════════════════════════════════════
-    
+/*  
     // F1 - Add 1 hour
     if (GetAsyncKeyState(VK_F1) & 1)
     {
@@ -255,17 +216,7 @@ void HandleDebugInput()
     // F2 - Subtract 1 hour
     if (GetAsyncKeyState(VK_F2) & 1)
     {
-        if (uPlayerInstance)
-        {
-            // Test both consistent candidates — set them to what they become after pickup
-            uint8_t* b237D = (uint8_t*)uPlayerInstance + 0x237D;
-            uint8_t* b1500 = (uint8_t*)uPlayerInstance + 0x1500;
-            *b237D &= ~0x08;
-            *b1500  = 0x04;
-            char buf[96];
-            sprintf_s(buf, "[TEST] 0x237D=0x%02X  0x1500=0x%02X", *b237D, *b1500);
-            LogLine(buf);
-        }
+
     }
 
     // F3 - Set time to 12:00 PM (noon)
@@ -285,4 +236,10 @@ void HandleDebugInput()
         LogLine("[DEBUG] All area keys granted");
     }
 
+    if (GetAsyncKeyState(VK_F6) & 1)
+    {
+        TimeChunkReward::UnlockAllChunks();
+        LogLine("[DEBUG] All time chunks unlocked");
+    }
+*/ 
 }

@@ -218,10 +218,6 @@ void ApplyRandomStartingOutfit()
     LogLine("[OUTFIT] ApplyRandomStartingOutfit enter");
 
     uint32_t seed = CheckSystem::GetSeed();
-    char seedbuf[64];
-    sprintf_s(seedbuf, "[OUTFIT] Seed = %u", seed);
-    LogLine(seedbuf);
-
     if (seed == 0)
     {
         LogLine("[OUTFIT] Seed is 0 — aborting");
@@ -229,15 +225,12 @@ void ApplyRandomStartingOutfit()
     }
 
     RngSeed(seed ^ 0xF0FFFFFF);
-    LogLine("[OUTFIT] RNG seeded");
 
     // Use fixed-size C arrays — avoids heap allocation inside a game hook,
     // which can crash if the game's allocator is in a bad state at this point.
     // Max per slot: slot0=42, slot1=10, slot2=15, slot3=8 — 64 is safe headroom.
     uint8_t slotIds[6][64] = {};
     int     slotCounts[6]  = {};
-
-    LogLine("[OUTFIT] Slot arrays allocated");
 
     for (int i = 0; i < COSTUME_POOL_SIZE; i++)
     {
@@ -246,42 +239,22 @@ void ApplyRandomStartingOutfit()
             slotIds[slot][slotCounts[slot]++] = g_costumePool[i].id;
     }
 
-    char countbuf[128];
-    sprintf_s(countbuf, "[OUTFIT] Slot counts: 0=%d 1=%d 2=%d 3=%d 4=%d 5=%d",
-              slotCounts[0], slotCounts[1], slotCounts[2],
-              slotCounts[3], slotCounts[4], slotCounts[5]);
-    LogLine(countbuf);
-
     for (int slot = 0; slot < 6; slot++)
     {
         if (slotCounts[slot] == 0)
-        {
-            char buf[64];
-            sprintf_s(buf, "[OUTFIT] Slot %d: empty pool, skipping", slot);
-            LogLine(buf);
             continue;
-        }
 
         int pick = RngRange(0, slotCounts[slot] + 1);
-
         if (pick == 0)
-        {
-            char buf[64];
-            sprintf_s(buf, "[OUTFIT] Slot %d: no change (pick=0)", slot);
-            LogLine(buf);
             continue;
-        }
 
         uint8_t id = slotIds[slot][pick - 1];
 
-        char buf[96];
-        sprintf_s(buf, "[OUTFIT] Slot %d: pick=%d id=%d — calling GiveCostume", slot, pick, id);
+        char buf[64];
+        sprintf_s(buf, "[OUTFIT] Slot %d: id=%d", slot, id);
         LogLine(buf);
 
         CostumeReward::GiveCostume((uint8_t)slot, id);
-
-        sprintf_s(buf, "[OUTFIT] Slot %d: GiveCostume returned", slot);
-        LogLine(buf);
     }
 
     LogLine("[OUTFIT] ApplyRandomStartingOutfit done");

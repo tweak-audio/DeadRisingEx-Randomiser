@@ -1,13 +1,9 @@
 ### TODO: ###
 
-- MT key item doesnt appear if you already have the MT key?
-    - Change to reward only and not check
-
 - hook cases
     - add to checks
     - (Is way harder than expected)
 
-- FULL TEST
 
 ### TO IMPROVE: ###
 
@@ -66,10 +62,20 @@
     - could split stat upgrades into rewards?
 
 - Interactable items around mall as checks
+    - eg: punching bag, tredmill, clothes rack
 - Breakable items as checks
+
+- Add security room locker keys to rewards
+    - creates a gate to that burst of checks
+    - uses different function that current key item
 
 
 DONE:
+
+- FULL TEST (Done)
+
+- MT key item doesnt appear if you already have the MT key?
+    - Change to reward only and not check (Done)
 
 - cleaner solution to supporting files (Done, 2 .dat now. checks and randomiser save)
     - timechunks.dat, check.dat, seed.dat

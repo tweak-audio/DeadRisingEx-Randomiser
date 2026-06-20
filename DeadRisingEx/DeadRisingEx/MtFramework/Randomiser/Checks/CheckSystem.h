@@ -22,7 +22,7 @@ constexpr int BATTERY_REFILL_REWARDS = 10;
 constexpr int AREA_KEY_REWARDS = 11;  // One per zone (COUNT), excluding ParadisePlaza (auto-given)
 constexpr int COSTUME_REWARDS_MIN = 30;
 
-constexpr int TOTAL_CHECKS = TOTAL_PPSTICKERS + TOTAL_SURVIVORS + TOTAL_PSYCHOPATHS + TOTAL_COSTUMES + TOTAL_KEY_ITEMS;
+constexpr int TOTAL_CHECKS = TOTAL_PPSTICKERS + TOTAL_SURVIVORS + TOTAL_PSYCHOPATHS + TOTAL_COSTUMES;
 
 // ─────────────────────────────────────────────
 //  Check types

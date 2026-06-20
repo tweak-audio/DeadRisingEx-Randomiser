@@ -1,6 +1,8 @@
 #include "DeadRisingEx/MtFramework/Rendering/ImGui/ImGuiConsole.h"
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/CheckSystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/TimeManager.h"
+#include "DeadRisingEx/MtFramework/Randomiser/KeyItemCheck.h"
+#include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include <stdio.h>
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -111,6 +113,32 @@ static __int64 Cmd_TimeSpeed(WCHAR** argv, int argc)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  fire_event <hex_id>
+//
+//  Fires any game event by hex ID directly through the event handler.
+//  Useful for testing what a given event ID does in-game.
+//  Example: fire_event 0x2E6
+// ─────────────────────────────────────────────────────────────────────────────
+
+static __int64 Cmd_FireEvent(WCHAR** argv, int argc)
+{
+    if (argc < 1)
+    {
+        ImGuiConsole::Instance()->ConsolePrint(L"[EVENT] Usage: fire_event <hex_id>  e.g. fire_event 0x2E6\n");
+        return 0;
+    }
+
+    uint32_t eventId = (uint32_t)wcstoul(argv[0], nullptr, 0);
+
+    QueueGameEvent(eventId);
+
+    wchar_t buf[64];
+    swprintf_s(buf, L"[EVENT] Queued event 0x%X — will fire next game tick\n", eventId);
+    ImGuiConsole::Instance()->ConsolePrint(buf);
+    return 0;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Registration
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -119,6 +147,7 @@ static const ConsoleCommandInfo g_RandomiserCommands[] =
     { L"randomiser_seed",   L"Reroll to a new random seed, or 'randomiser_seed <n>' to use a specific seed", Cmd_RandomiserSeed   },
     { L"randomiser_status", L"Print current seed and check progress",                                         Cmd_RandomiserStatus },
     { L"time_speed",        L"Set game time speed: 0.5 (half), 1 (normal), 2 (double). No arg = show current", Cmd_TimeSpeed     },
+    { L"fire_event",        L"Fire a game event by hex ID for testing. Usage: fire_event <hex_id>",            Cmd_FireEvent        },
 };
 
 void RegisterRandomiserConsoleCommands()
