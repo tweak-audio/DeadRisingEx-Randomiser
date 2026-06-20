@@ -11,20 +11,16 @@
 - cleaner solution to supporting files
     - timechunks.dat, check.dat, seed.dat
 
-- notif for time chunks still have + ## 
-    - needs to be incremental not set
-
 - notif: key obtained. what does that mean?
+    - is currently play holder for key items
 
 - not all clothing it set up as check 
     - (shoes in entrance Plaza)
     - kids choice clothing, clothes and mask = x2
     - glasses
     - sport shoes
-
     - need to go around and generate a list of all possible clohting checks
 
-- MT key item doesnt appear if you already have the MT key?
 
 - cant access entrance plaza checks until we've accessed EP from AFP
 
@@ -32,10 +28,6 @@
     1. unique clothes
     2. unique clothes per zone
     3. all clothing checks
-
-- PP -> MT causes respawn even tho I have the MT area Key
-    - Area key after intro flag resets when closing and opening the game
-    - needs reoccuring flag
 
 - Clean up debug code
 - Clean up testing code when releasing!!!!!!
@@ -78,6 +70,16 @@
 
 
 DONE:
+
+- notif for time chunks still have + ## (Done)
+    - needs to be incremental not set
+
+- MT key item doesnt appear if you already have the MT key? (Done)
+    -
+
+- PP -> MT causes respawn even tho I have the MT area Key (Done)
+    - Area key after intro flag resets when closing and opening the game
+    - needs reoccuring flag (Done)
 
 - randomise key items
     - maintanance tunnel key (yes) (done)

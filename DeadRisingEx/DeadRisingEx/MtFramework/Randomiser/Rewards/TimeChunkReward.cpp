@@ -92,6 +92,11 @@ int TimeChunkReward::GetTotalChunks()
     return (s_chunkMode == TimeManager::ChunkSize::SIX_HOURS) ? 12 : 6;
 }
 
+int TimeChunkReward::GetHoursPerChunk()
+{
+    return (s_chunkMode == TimeManager::ChunkSize::SIX_HOURS) ? 6 : 12;
+}
+
 int TimeChunkReward::GetUnlockedChunkCount()
 {
     int count = 0;
@@ -184,9 +189,11 @@ uint32_t TimeChunkReward::GetMaxAllowedTime()
 
 void TimeChunkReward::EnforceTimeGate()
 {
+    TimeManager::TickSpeedAdjustment();
+
     if (!s_initialized || !s_timeGatingEnabled)
         return;
-    
+
     uint32_t currentTime = TimeManager::GetGameTime();
     if (currentTime == 0)  // Game not loaded yet
         return;

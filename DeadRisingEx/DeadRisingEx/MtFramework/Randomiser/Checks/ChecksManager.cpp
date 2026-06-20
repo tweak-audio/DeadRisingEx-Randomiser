@@ -13,6 +13,7 @@ Save Checks to file to be recalled later
 std::vector<uint16_t> SaveStateManager::s_completedChecks;
 uint8_t SaveStateManager::s_rewardCostumeIds[6] = {};
 bool    SaveStateManager::s_hasRewardCostume[6] = {};
+bool    SaveStateManager::s_areaKeysGranted[12] = {};
 
 void SaveStateManager::Initialize()
 {
@@ -56,7 +57,7 @@ void SaveStateManager::SaveCheckState()
         return;
     }
     
-    uint32_t version = 2;
+    uint32_t version = 3;
     file.write(reinterpret_cast<const char*>(&version), sizeof(version));
 
     uint32_t count = static_cast<uint32_t>(s_completedChecks.size());
@@ -70,6 +71,13 @@ void SaveStateManager::SaveCheckState()
     for (int i = 0; i < 6; i++)
     {
         uint8_t flag = s_hasRewardCostume[i] ? 1 : 0;
+        file.write(reinterpret_cast<const char*>(&flag), sizeof(flag));
+    }
+
+    // Area key state (12 bytes)
+    for (int i = 0; i < 12; i++)
+    {
+        uint8_t flag = s_areaKeysGranted[i] ? 1 : 0;
         file.write(reinterpret_cast<const char*>(&flag), sizeof(flag));
     }
     
@@ -97,7 +105,7 @@ void SaveStateManager::LoadCheckState()
     uint32_t version = 0;
     file.read(reinterpret_cast<char*>(&version), sizeof(version));
     
-    if (version != 1 && version != 2)
+    if (version < 1 || version > 3)
     {
         LogLine("[SAVESTATE] Unknown save file version");
         file.close();
@@ -125,6 +133,16 @@ void SaveStateManager::LoadCheckState()
             uint8_t flag = 0;
             file.read(reinterpret_cast<char*>(&flag), sizeof(flag));
             s_hasRewardCostume[i] = flag != 0;
+        }
+    }
+
+    if (version >= 3)
+    {
+        for (int i = 0; i < 12; i++)
+        {
+            uint8_t flag = 0;
+            file.read(reinterpret_cast<char*>(&flag), sizeof(flag));
+            s_areaKeysGranted[i] = flag != 0;
         }
     }
     
@@ -187,4 +205,17 @@ bool SaveStateManager::HasRewardCostume(uint8_t slot)
 uint8_t SaveStateManager::GetRewardCostumeId(uint8_t slot)
 {
     return slot < 6 ? s_rewardCostumeIds[slot] : 0;
+}
+
+void SaveStateManager::SetAreaKeyGranted(int zoneIdx)
+{
+    if (zoneIdx < 0 || zoneIdx >= 12) return;
+    if (s_areaKeysGranted[zoneIdx]) return;
+    s_areaKeysGranted[zoneIdx] = true;
+    SaveCheckState();
+}
+
+bool SaveStateManager::IsAreaKeyGranted(int zoneIdx)
+{
+    return zoneIdx >= 0 && zoneIdx < 12 && s_areaKeysGranted[zoneIdx];
 }

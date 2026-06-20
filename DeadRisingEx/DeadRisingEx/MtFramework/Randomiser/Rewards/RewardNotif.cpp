@@ -1,4 +1,5 @@
 #include "RewardNotif.h"
+#include "TimeChunkReward.h"
 #include "DeadRisingEx/MtFramework/Randomiser/AreaKeySystem.h"
 #include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
@@ -50,7 +51,7 @@ static const char* GetRewardText(RewardType type, const char* rewardName, int va
             return "CAMERA REFILLED!";
 
         case RewardType::TimeChunk:
-            sprintf_s(s_buf, sizeof(s_buf), "TIME EXTENDED! +%d CHUNK!", value);
+            sprintf_s(s_buf, sizeof(s_buf), "TIME EXTENDED! +%d HOURS!", TimeChunkReward::GetHoursPerChunk());
             return s_buf;
 
         case RewardType::SetItem:

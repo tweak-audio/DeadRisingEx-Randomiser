@@ -42,7 +42,10 @@ public:
     
     // Get total number of chunks for current mode (for reward pool calculation)
     static int GetTotalChunks();
-    static int GetUnlockedChunkCount(); 
+    static int GetUnlockedChunkCount();
+
+    // Get hours added per chunk for current mode (6 or 12)
+    static int GetHoursPerChunk();
 
 private:
     static TimeManager::ChunkSize s_chunkMode;

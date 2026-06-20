@@ -2,6 +2,8 @@
 
 #include "AreaKeySystem.h"
 #include "Misc/AsmHelpers.h"
+#include "Checks/ChecksManager.h"
+#include "DeadRisingEx/Utilities/DebugLog.h"
 
 AreaKeySystem& AreaKeySystem::Get()
 {
@@ -198,8 +200,26 @@ bool AreaKeySystem::HasKey(uint32_t rawAreaId) const
 
 void AreaKeySystem::GiveKey(ZoneID zone)
 {
-    if (zone < ZoneID::COUNT)
-        m_hasKey[static_cast<int>(zone)] = true;
+    if (zone >= ZoneID::COUNT) return;
+    int idx = static_cast<int>(zone);
+    m_hasKey[idx] = true;
+    SaveStateManager::SetAreaKeyGranted(idx);
+}
+
+void AreaKeySystem::ReapplyFromSave()
+{
+    int reapplied = 0;
+    for (int i = 0; i < KEY_COUNT; i++)
+    {
+        if (SaveStateManager::IsAreaKeyGranted(i))
+        {
+            m_hasKey[i] = true;
+            reapplied++;
+        }
+    }
+    char buf[64];
+    sprintf_s(buf, "[AreaKeySystem] Reapplied %d area keys from save", reapplied);
+    LogLine(buf);
 }
 
 void AreaKeySystem::OnCheckCompleted(DWORD checkId)

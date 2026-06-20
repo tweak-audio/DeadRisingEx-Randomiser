@@ -274,6 +274,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         TimeManager::Initialize();
         AreaKeySystem::Get().Init(0);
         CheckSystem::Initialize();
+        AreaKeySystem::Get().ReapplyFromSave();
         AreaTransitionHook::Install();
 
         // Initialize notification hook system (for displaying rewards)

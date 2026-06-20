@@ -44,6 +44,8 @@ public:
     void SetIntroComplete(bool complete);
     bool IsIntroComplete() const;
 
+    void ReapplyFromSave();
+
 private:
     bool m_introComplete = false;
     AreaKeySystem() = default;

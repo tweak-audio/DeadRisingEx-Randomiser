@@ -19,9 +19,13 @@ public:
     static bool    HasRewardCostume(uint8_t slot);
     static uint8_t GetRewardCostumeId(uint8_t slot);
 
+    static void SetAreaKeyGranted(int zoneIdx);
+    static bool IsAreaKeyGranted(int zoneIdx);
+
 private:
     static std::string GetSaveFilePath();
     static std::vector<uint16_t> s_completedChecks;
     static uint8_t s_rewardCostumeIds[6];
     static bool    s_hasRewardCostume[6];
+    static bool    s_areaKeysGranted[12];
 };
