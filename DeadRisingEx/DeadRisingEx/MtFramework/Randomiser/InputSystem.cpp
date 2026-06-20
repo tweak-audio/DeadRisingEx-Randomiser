@@ -183,9 +183,7 @@ void HandleDebugInput()
     
     if (GetAsyncKeyState('1') & 1)
     {
-        for (int i = 0; i < static_cast<int>(ZoneID::COUNT); i++)
-            AreaKeySystem::Get().GiveKey(static_cast<ZoneID>(i));
-        LogLine("[DEBUG] All area keys granted");
+
     }
 
     if (GetAsyncKeyState('2') & 1)
@@ -272,8 +270,13 @@ void HandleDebugInput()
     }
 
     if (GetAsyncKeyState(VK_F4) & 1)
-        TakePlayerSnapshot();
+
 
     if (GetAsyncKeyState(VK_F5) & 1)
-        DiffPlayerSnapshot();
+    {
+        for (int i = 0; i < static_cast<int>(ZoneID::COUNT); i++)
+            AreaKeySystem::Get().GiveKey(static_cast<ZoneID>(i));
+        LogLine("[DEBUG] All area keys granted");
+    }
+
 }

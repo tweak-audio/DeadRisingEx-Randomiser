@@ -187,12 +187,12 @@ static Vector4 GetPlayerSpawnPosition()
     return pos;
 }
 
-// ── Approach A (inactive): sItemCtrl::_SpawnItem ──────────────────────────
+// ── Approach A (active): sItemCtrl::_SpawnItem ────────────────────────────
 // Pre-loads the archive, delegates init to _SpawnItem (which calls
 // SetupItemProperties internally), then releases the manual archive ref.
 // Goes through the Hook_SpawnItem detour.
-#if 0
-static bool SpawnItemViaCtrl(DWORD itemId, const Vector4& pos)
+#if 1
+static bool SpawnItemAtPosition (DWORD itemId, const Vector4& pos)
 {
     sItemCtrl* ctrl = sItemCtrl::Instance();
     if (!ctrl) return false;
@@ -213,8 +213,6 @@ static bool SpawnItemViaCtrl(DWORD itemId, const Vector4& pos)
     if (!res) return false;
 
     uItem* item = sItemCtrl::_SpawnItem(ctrl, itemId);
-    res->DecrementRefCount();
-
     if (!item) return false;
 
     Vector4* itemPos = (Vector4*)((uint8_t*)item + 0x40);
@@ -224,11 +222,11 @@ static bool SpawnItemViaCtrl(DWORD itemId, const Vector4& pos)
 }
 #endif
 
-// ── Approach B (active): DTI-based spawn (mirrors spawn_item console command) ──
+// ── Approach B (inactive): DTI-based spawn (mirrors spawn_item console command) ──
 // Parses the hex file ID from the archive path, resolves the uOmXX class name
 // via MtDTI, creates the instance directly, then registers it with sUnit.
 // Does NOT go through sItemCtrl or Hook_SpawnItem.
-static bool SpawnItemAtPosition(DWORD itemId, const Vector4& pos)
+static bool SpawnItemViaCtrl(DWORD itemId, const Vector4& pos)
 {
     ItemInfoEntry* info = &uItem::ItemInfoTable[itemId];
     if (!info || !info->ArchivePath || !info->ArchivePath[0])

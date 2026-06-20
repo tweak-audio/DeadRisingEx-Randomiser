@@ -18,6 +18,7 @@
 #include <MtFramework/Memory/MtHeapAllocator.h>
 #include <MtFramework/Object/cUnit.h>
 #include "DeadRisingEx/MtFramework/Player/uPlayerImpl.h"
+#include "DeadRisingEx/MtFramework/Randomiser/InputSystem.h"
 
 bool(__stdcall *sUnit_Something)(void *thisptr, int unk, uItem *pItem) =
     (bool(__stdcall*)(void*, int, uItem*))GetModuleAddress(0x1406300B0);
@@ -557,8 +558,25 @@ void __stdcall Hook_sAreaHit_SpawnItems(sAreaHit *thisptr)
     }
 }
 
+static const char* kKeyItemNames[] = { "uOm0028", "uOm0081", "uOm0084", "uOm00de" };
+
 uItem * __stdcall Hook_SpawnItem(sItemCtrl *thisptr, DWORD dwItemId)
 {
+    if (dwItemId < ITEM_COUNT && uItem::ItemInfoTable[dwItemId].Name != nullptr)
+    {
+        const char* name = uItem::ItemInfoTable[dwItemId].Name;
+        for (const char* keyName : kKeyItemNames)
+        {
+            if (strcmp(name, keyName) == 0)
+            {
+                char buf[64];
+                sprintf_s(buf, "[KEYITEM] spawn: %s", name);
+                LogLine(buf);
+                break;
+            }
+        }
+    }
+
     DbgPrint("Spawning item %d\n", dwItemId);
     return sItemCtrl::_SpawnItem(thisptr, dwItemId);
 }
