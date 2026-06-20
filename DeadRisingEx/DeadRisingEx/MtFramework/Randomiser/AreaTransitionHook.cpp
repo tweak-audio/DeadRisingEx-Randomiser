@@ -23,6 +23,7 @@ static uint32_t s_previousArea = 0;
 
 static void LogTransition(const char* msg)
 {
+#if 0
     static char path[MAX_PATH] = { 0 };
     if (path[0] == 0)
     {
@@ -39,6 +40,7 @@ static void LogTransition(const char* msg)
         fprintf(f, "[%02d:%02d:%02d] %s\n", t.wHour, t.wMinute, t.wSecond, msg);
         fclose(f);
     }
+#endif
 }
 
 uint32_t AreaTransitionHook::GetCurrentAreaId()

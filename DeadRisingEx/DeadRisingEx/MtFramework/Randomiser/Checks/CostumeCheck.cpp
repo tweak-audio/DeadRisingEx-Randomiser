@@ -54,6 +54,7 @@ namespace CostumeCheck
 
     static void LogCostume(uint8_t slot, uint8_t id, int checkId)
     {
+#if 0
         static bool s_headerWritten = false;
 
         FILE* f = nullptr;
@@ -70,6 +71,7 @@ namespace CostumeCheck
         uint32_t areaId = AreaTransitionHook::GetCurrentAreaId();
         fprintf(f, "%-10d %-10d %-10d 0x%-8X\n", checkId, slot, id, areaId);
         fclose(f);
+#endif
     }
 
     // ═══════════════════════════════════════════

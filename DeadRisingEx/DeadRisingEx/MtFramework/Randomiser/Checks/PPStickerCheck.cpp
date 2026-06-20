@@ -90,6 +90,7 @@ void __stdcall Hook_StickerUpdate(int64_t* param_1)
 
 static void LogStickerToFile(uint32_t photoId, uint32_t areaId, ZoneID zone)
 {
+#if 0
     char path[MAX_PATH];
     GetModuleFileNameA(NULL, path, MAX_PATH);
     char* slash = strrchr(path, '\\');
@@ -104,6 +105,7 @@ static void LogStickerToFile(uint32_t photoId, uint32_t areaId, ZoneID zone)
     fprintf(f, "PhotoId=%-4u | AreaId=0x%03X | Zone=%s\n",
         photoId, areaId, (zone == ZoneID::COUNT) ? "Unknown/Always Unlocked" : zoneName);
     fclose(f);
+#endif
 }
 
 void uPPStickerImpl::OnStickerCollected(void* stickerObject, uint32_t itemPhotoId,
