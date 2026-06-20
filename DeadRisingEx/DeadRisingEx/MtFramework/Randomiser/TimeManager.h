@@ -75,18 +75,25 @@ public:
     static constexpr uint32_t GAME_END_TICK = 11664000;    // Day 4, 12:00 PM (noon) - 72 hours later
     static constexpr uint32_t TOTAL_GAME_TICKS = GAME_END_TICK - GAME_START_TICK; // 7776000 ticks = 72 hours
     
+    // Time speed multiplier (1.0 = normal, 2.0 = double, 0.5 = half)
+    static void  SetSpeedMultiplier(float mult);
+    static float GetSpeedMultiplier();
+    static void  TickSpeedAdjustment();  // Call once per frame
+
     // Debug
     static void PrintDebugInfo();
 
 private:
     static uint32_t* GetGameTimePointer();
-    
+
     // Use the SAME base as camera battery - we know this works!
     static constexpr uintptr_t GAME_MANAGER_OFFSET = 0x1CF2AA0;  // Same as camera
-    static constexpr uintptr_t GAME_STATE_PTR_OFFSET = 0x20DC0;  // Same as camera  
+    static constexpr uintptr_t GAME_STATE_PTR_OFFSET = 0x20DC0;  // Same as camera
     static constexpr uintptr_t GAME_TIME_VALUE_OFFSET = 0x198;   // Time offset in player object
-    
-    static bool s_initialized;
-    static bool s_timeFrozen;
+
+    static bool     s_initialized;
+    static bool     s_timeFrozen;
     static uint32_t s_frozenTime;
+    static float    s_speedMultiplier;
+    static uint32_t s_speedLastGameTime;
 };

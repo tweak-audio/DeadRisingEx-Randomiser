@@ -4,9 +4,11 @@
 #include <Windows.h>
 #include <cstdio>
 
-bool TimeManager::s_initialized = false;
-bool TimeManager::s_timeFrozen = false;
-uint32_t TimeManager::s_frozenTime = 0;
+bool     TimeManager::s_initialized      = false;
+bool     TimeManager::s_timeFrozen       = false;
+uint32_t TimeManager::s_frozenTime       = 0;
+float    TimeManager::s_speedMultiplier  = 1.0f;
+uint32_t TimeManager::s_speedLastGameTime = 0;
 
 void TimeManager::Initialize()
 {
@@ -190,6 +192,57 @@ void TimeManager::SetTime(int hour, int minute, int second, bool isPM)
                      (second * TICKS_PER_SECOND);
     
     SetGameTime(ticks);
+}
+
+void TimeManager::SetSpeedMultiplier(float mult)
+{
+    if (mult <= 0.0f) mult = 0.01f;
+    s_speedMultiplier    = mult;
+    s_speedLastGameTime  = 0;  // Force re-sync on next tick
+
+    char buf[64];
+    sprintf_s(buf, "[TimeManager] Speed multiplier set to %.2fx", mult);
+    LogLine(buf);
+}
+
+float TimeManager::GetSpeedMultiplier()
+{
+    return s_speedMultiplier;
+}
+
+void TimeManager::TickSpeedAdjustment()
+{
+    uint32_t* ptr = GetGameTimePointer();
+    if (!ptr) return;
+
+    uint32_t current = *ptr;
+
+    // No adjustment needed — just keep the baseline in sync
+    if (s_timeFrozen || s_speedMultiplier == 1.0f)
+    {
+        s_speedLastGameTime = current;
+        return;
+    }
+
+    // First valid frame or time went backwards (load/reset) — sync and skip
+    if (s_speedLastGameTime == 0 || current < s_speedLastGameTime)
+    {
+        s_speedLastGameTime = current;
+        return;
+    }
+
+    uint32_t delta = current - s_speedLastGameTime;
+    if (delta == 0) return;
+
+    int32_t adjustment = (int32_t)((float)delta * (s_speedMultiplier - 1.0f));
+    if (adjustment != 0)
+    {
+        uint32_t newTime = (uint32_t)((int32_t)current + adjustment);
+        if (newTime > GAME_END_TICK) newTime = GAME_END_TICK;
+        *ptr = newTime;
+    }
+
+    s_speedLastGameTime = *ptr;
 }
 
 void TimeManager::PrintDebugInfo()
