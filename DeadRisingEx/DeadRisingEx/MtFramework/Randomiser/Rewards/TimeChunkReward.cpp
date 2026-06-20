@@ -122,12 +122,7 @@ void TimeChunkReward::GrantTimeChunk(int chunkNumber)
     }
     
     if (s_chunksUnlocked[chunkNumber])
-    {
-        char buf[128];
-        sprintf_s(buf, "[TIME GATE] Chunk %d already unlocked", chunkNumber);
-        LogLine(buf);
         return;
-    }
     
     s_chunksUnlocked[chunkNumber] = true;
     

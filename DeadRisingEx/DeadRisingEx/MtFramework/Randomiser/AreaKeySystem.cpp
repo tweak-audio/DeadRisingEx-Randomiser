@@ -3,7 +3,7 @@
 #include "AreaKeySystem.h"
 #include "Misc/AsmHelpers.h"
 #include "Checks/ChecksManager.h"
-#include "DeadRisingEx/Utilities/DebugLog.h"
+#include "InputSystem.h"
 
 AreaKeySystem& AreaKeySystem::Get()
 {
@@ -204,6 +204,9 @@ void AreaKeySystem::GiveKey(ZoneID zone)
     int idx = static_cast<int>(zone);
     m_hasKey[idx] = true;
     SaveStateManager::SetAreaKeyGranted(idx);
+    char buf[64];
+    sprintf_s(buf, "[AreaKey] Granted: %s (zone %d)", GetZoneName(zone), idx);
+    LogLine(buf);
 }
 
 void AreaKeySystem::ReapplyFromSave()

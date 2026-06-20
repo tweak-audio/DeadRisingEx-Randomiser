@@ -39,13 +39,12 @@ namespace KeyItemCheck
         if (s_manager == 0)
             s_manager = manager;
 
-        char buf[64];
-        sprintf_s(buf, "[KEYITEM] event=0x%X", event_id);
-        LogLine(buf);
-
         if (IsKeyEvent(event_id))
         {
-            // Disconnect vanilla zone unlock — fire check only
+            char buf[64];
+            sprintf_s(buf, "[KEYITEM] event=0x%X", event_id);
+            LogLine(buf);
+
             for (int i = 0; i < kKeyEventCount; i++)
             {
                 if (kKeyEvents[i].eventId == event_id)

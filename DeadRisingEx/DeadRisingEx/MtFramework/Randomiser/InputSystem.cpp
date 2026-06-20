@@ -41,10 +41,16 @@ void LogLine(const char* text)
 {
     if (hRandomiserLog != INVALID_HANDLE_VALUE)
     {
-        DWORD bytesWritten = 0;
-        WriteFile(hRandomiserLog, text, lstrlenA(text), &bytesWritten, NULL);
-        WriteFile(hRandomiserLog, "\r\n", 2, &bytesWritten, NULL);
-        FlushFileBuffers(hRandomiserLog);
+        char lineBuf[2048];
+        int len = _snprintf_s(lineBuf, sizeof(lineBuf) - 2, _TRUNCATE, "%s", text);
+        if (len > 0)
+        {
+            lineBuf[len]     = '\r';
+            lineBuf[len + 1] = '\n';
+            DWORD bytesWritten = 0;
+            WriteFile(hRandomiserLog, lineBuf, (DWORD)(len + 2), &bytesWritten, NULL);
+            FlushFileBuffers(hRandomiserLog);
+        }
     }
 
     if (!g_logShuttingDown)
@@ -241,7 +247,7 @@ void HandleDebugInput()
         char buf[128];
         sprintf_s(buf, "[TIME] +1 hour (was: %s)", TimeManager::GetTimeString().c_str());
         LogLine(buf);
-        //TimeManager::AddHours(1);
+        TimeManager::AddHours(1);
         sprintf_s(buf, "[TIME] Now: %s", TimeManager::GetTimeString().c_str());
         LogLine(buf);
     }
