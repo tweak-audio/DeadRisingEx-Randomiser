@@ -3,6 +3,7 @@
 #include <detours.h>
 #include <cstdint>
 #include <stdio.h>
+#include <unordered_set>
 #include "Misc/AsmHelpers.h"
 #include "InputSystem.h"
 #include "Checks/CheckSystem.h"
@@ -33,18 +34,24 @@ namespace KeyItemCheck
         return false;
     }
 
+    static std::unordered_set<uint32_t> s_seenEvents;
+
     static void __stdcall Hook_GameEvent(int64_t manager, uint32_t event_id)
     {
         // Capture manager on first call for use by KeyItemReward
         if (s_manager == 0)
             s_manager = manager;
 
-        if (IsKeyEvent(event_id))
+        if (s_seenEvents.find(event_id) == s_seenEvents.end())
         {
+            s_seenEvents.insert(event_id);
             char buf[64];
             sprintf_s(buf, "[KEYITEM] event=0x%X", event_id);
             LogLine(buf);
+        }
 
+        if (IsKeyEvent(event_id))
+        {
             for (int i = 0; i < kKeyEventCount; i++)
             {
                 if (kKeyEvents[i].eventId == event_id)

@@ -1,5 +1,11 @@
 ### TODO: ###
 
+- cleaner solution to supporting files
+    - timechunks.dat, check.dat, seed.dat
+
+- MT key item doesnt appear if you already have the MT key?
+    - Change to reward only and not check
+
 - hook cases
     - add to checks
     - (Is way harder than expected)
@@ -8,25 +14,22 @@
 
 ### TO IMPROVE: ###
 
-- cleaner solution to supporting files
-    - timechunks.dat, check.dat, seed.dat
-
 - notif: key obtained. what does that mean?
-    - is currently play holder for key items
+    - is currently place holder for key items
 
 - not all clothing it set up as check 
     - (shoes in entrance Plaza)
     - kids choice clothing, clothes and mask = x2
     - glasses
     - sport shoes
-    - need to go around and generate a list of all possible clohting checks
+    - need to go around and generate a list of all possible clothing checks
 
 
 - cant access entrance plaza checks until we've accessed EP from AFP
 
 - have 3 modes for clothing checks
     1. unique clothes
-    2. unique clothes per zone
+    2. unique clothes per zone (current)
     3. all clothing checks
 
 - Clean up debug code
@@ -73,9 +76,6 @@ DONE:
 
 - notif for time chunks still have + ## (Done)
     - needs to be incremental not set
-
-- MT key item doesnt appear if you already have the MT key? (Done)
-    -
 
 - PP -> MT causes respawn even tho I have the MT area Key (Done)
     - Area key after intro flag resets when closing and opening the game
