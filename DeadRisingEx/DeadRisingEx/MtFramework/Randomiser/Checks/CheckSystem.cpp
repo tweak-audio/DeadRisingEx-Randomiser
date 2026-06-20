@@ -10,6 +10,7 @@
 #include "DeadRisingEx/MtFramework/Randomiser/RandomiserConfig.h"
 
 #include "DeadRisingEx/Utilities/DebugLog.h"
+#include "DeadRisingEx/MtFramework/Randomiser/RandomiserSave.h"
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
@@ -18,8 +19,6 @@
 #include <time.h>
 #include <string.h>
 #include <Windows.h>
-
-static const char* SEED_FILE_PATH = "DeadRisingEx_Randomiser_Seed.dat";
 
 // ─────────────────────────────────────────────
 //  State
@@ -747,20 +746,13 @@ std::string CheckSystem::GetCurrentTimeString()
 
 void CheckSystem::SaveSeedToFile()
 {
-    FILE* f = nullptr;
-    fopen_s(&f, SEED_FILE_PATH, "wb");
-    if (f) { fwrite(&s_seed, sizeof(uint32_t), 1, f); fclose(f); }
+    RandomiserSave::SetSeed(s_seed);
 }
 
 bool CheckSystem::LoadSeedFromFile()
 {
-    FILE* f = nullptr;
-    fopen_s(&f, SEED_FILE_PATH, "rb");
-    if (!f) return false;
-    uint32_t loaded = 0;
-    bool ok = fread(&loaded, sizeof(uint32_t), 1, f) == 1;
-    fclose(f);
-    if (ok && loaded != 0) { s_seed = loaded; return true; }
+    uint32_t loaded = RandomiserSave::GetSeed();
+    if (loaded != 0) { s_seed = loaded; return true; }
     return false;
 }
 
@@ -791,6 +783,7 @@ void CheckSystem::Initialize()
 
     s_state = CheckSystemState::BOOTSTRAPPING;
 
+    RandomiserSave::Load();
     SaveStateManager::Initialize();
     TimeChunkReward::Initialize();
     

@@ -1,8 +1,5 @@
 ### TODO: ###
 
-- cleaner solution to supporting files
-    - timechunks.dat, check.dat, seed.dat
-
 - MT key item doesnt appear if you already have the MT key?
     - Change to reward only and not check
 
@@ -73,6 +70,9 @@
 
 
 DONE:
+
+- cleaner solution to supporting files (Done, 2 .dat now. checks and randomiser save)
+    - timechunks.dat, check.dat, seed.dat
 
 - notif for time chunks still have + ## (Done)
     - needs to be incremental not set

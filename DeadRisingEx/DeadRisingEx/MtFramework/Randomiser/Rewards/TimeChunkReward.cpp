@@ -4,17 +4,16 @@
 #include "DeadRisingEx/MtFramework/Randomiser/Checks/ChecksManager.h"
 #include "TimeChunkReward.h"
 #include "DeadRisingEx/MtFramework/Randomiser/RandomiserConfig.h"
+#include "DeadRisingEx/MtFramework/Randomiser/RandomiserSave.h"
 #include "DeadRisingEx/Utilities/DebugLog.h"
-#include <stdio.h>
+#include <string.h>
 
 bool TimeChunkReward::s_initialized = false;
-TimeManager::ChunkSize TimeChunkReward::s_chunkMode = TimeManager::ChunkSize::SIX_HOURS;  // Default to 6-hour chunks
+TimeManager::ChunkSize TimeChunkReward::s_chunkMode = TimeManager::ChunkSize::SIX_HOURS;
 bool TimeChunkReward::s_chunksUnlocked[12] = {};
 bool TimeChunkReward::s_timeGatingEnabled = true;
 bool TimeChunkReward::s_hasWarnedPlayer = false;
-static bool s_hasKilledForTimeGate = false; 
-
-static const char* TIME_CHUNKS_SAVE_FILE = "DeadRisingEx_TimeChunks.dat";
+static bool s_hasKilledForTimeGate = false;
 
 void TimeChunkReward::Initialize()
 {
@@ -46,24 +45,8 @@ void TimeChunkReward::Initialize()
 
 void TimeChunkReward::LoadUnlockedChunksWithoutMode()
 {
-    FILE* f = nullptr;
-    fopen_s(&f, TIME_CHUNKS_SAVE_FILE, "rb");
-    if (!f) return;
-    
-    // Skip the saved mode (read but ignore it)
-    int savedMode = 6;
-    fread(&savedMode, sizeof(int), 1, f);
-    // DON'T apply it - we already set s_chunkMode from USE_6_HOUR_CHUNKS
-    
-    // Load unlocked chunks
-    fread(s_chunksUnlocked, sizeof(bool), 12, f);
-    
-    // Load gating setting
-    fread(&s_timeGatingEnabled, sizeof(bool), 1, f);
-    
-    fclose(f);
-    
-    LogLine("[TIME GATE] Loaded unlocked chunks from save (mode from code)");
+    memcpy(s_chunksUnlocked, RandomiserSave::GetChunksUnlocked(), 12 * sizeof(bool));
+    LogLine("[TIME GATE] Loaded unlocked chunks from save");
 }
 
 void TimeChunkReward::SetChunkMode(TimeManager::ChunkSize mode)
@@ -303,19 +286,5 @@ void TimeChunkReward::ResetAllChunks()
 
 void TimeChunkReward::SaveUnlockedChunks()
 {
-    FILE* f = nullptr;
-    fopen_s(&f, TIME_CHUNKS_SAVE_FILE, "wb");
-    if (!f) return;
-    
-    // Save the mode
-    int modeValue = (s_chunkMode == TimeManager::ChunkSize::SIX_HOURS) ? 6 : 12;
-    fwrite(&modeValue, sizeof(int), 1, f);
-    
-    // Save unlocked chunks
-    fwrite(s_chunksUnlocked, sizeof(bool), 12, f);
-    
-    // Save gating setting
-    fwrite(&s_timeGatingEnabled, sizeof(bool), 1, f);
-    
-    fclose(f);
+    RandomiserSave::SetChunksUnlocked(s_chunksUnlocked);
 }

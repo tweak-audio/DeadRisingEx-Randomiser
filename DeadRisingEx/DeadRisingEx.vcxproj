@@ -53,6 +53,7 @@
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\AreaKeySystem.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\AreaTransitionHook.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\RandomiserConfig.cpp" />
+    <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\RandomiserSave.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\RandomiserConsoleCommands.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\PlayerHealthManager.cpp" />
     <ClCompile Include="DeadRisingEx\MtFramework\Randomiser\Checks\ChecksManager.cpp" />
@@ -116,6 +117,7 @@
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\AreaKeySystem.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\AreaTransitionHook.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\RandomiserConfig.h" />
+    <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\RandomiserSave.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\Checks\ChecksManager.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\Checks\PPStickerCheck.h" />
     <ClInclude Include="DeadRisingEx\MtFramework\Randomiser\Checks\CheckSystem.h" />
